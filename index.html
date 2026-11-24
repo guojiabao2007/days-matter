@@ -1,15 +1,15 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-  <title>Days Matter · 倒数日</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Days Matter · 专属倒数日</title>
 
   <!-- iOS 添加到主屏幕原生全屏配置 -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="倒数日" />
-  <meta name="theme-color" content="#111827" />
+  <meta name="theme-color" content="#5c3a21" />
 
   <!-- 动态生成 iOS 桌面图标 -->
   <link id="apple-touch-icon" rel="apple-touch-icon" href="" />
@@ -20,829 +20,1596 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
 
   <style>
-    /* 全局原生级字体与交互细节 */
+    /* ==================== 1. 禁止双击缩放、页面误滚动与安全区适配 ==================== */
     * {
       -webkit-tap-highlight-color: transparent;
       box-sizing: border-box;
       user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
     }
     input, textarea, select {
       user-select: auto;
+      -webkit-user-select: auto;
     }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
-      background-color: #0f172a;
+    html, body {
+      width: 100%;
+      height: 100%;
       margin: 0;
       padding: 0;
-      overflow-x: hidden;
+      overflow: hidden;
+      overscroll-behavior: none;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Rounded", "SF Pro Display", "PingFang SC", "Hiragino Sans GB", sans-serif;
+      background-color: #3e2723;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* 等宽数字，倒计时更整齐 */
+    /* 灵动岛与桌面书签安全区 */
+    .safe-header {
+      padding-top: calc(max(env(safe-area-inset-top, 0px), 20px) + 8px);
+    }
+    @media all and (display-mode: standalone) {
+      .safe-header {
+        padding-top: calc(max(env(safe-area-inset-top, 47px), 47px) + 8px);
+      }
+    }
+    .safe-bottom-bar {
+      padding-bottom: calc(max(env(safe-area-inset-bottom, 0px), 12px) + 4px);
+    }
+
     .num-tabular {
       font-variant-numeric: tabular-nums;
     }
 
-    /* 适配 iPhone 刘海屏 / 灵动岛安全区 */
-    .safe-top {
-      padding-top: env(safe-area-inset-top, 20px);
-    }
-    .safe-bottom {
-      padding-bottom: env(safe-area-inset-bottom, 16px);
+    /* 内置温柔治愈系渐变壁纸 */
+    .theme-0 { background: linear-gradient(155deg, #6d4c41 0%, #8d6e63 48%, #4e342e 100%); }
+    .theme-1 { background: linear-gradient(145deg, #d9778b 0%, #f4a261 52%, #7c3aed 100%); }
+    .theme-2 { background: linear-gradient(145deg, #c94b4b 0%, #6d3b47 100%); }
+    .theme-3 { background: linear-gradient(145deg, #5c4d7d 0%, #9b72aa 100%); }
+    .theme-4 { background: linear-gradient(145deg, #3d5a80 0%, #7d5a50 100%); }
+
+    /* 幻灯片双层淡入淡出过渡 */
+    .bg-slide-layer {
+      position: fixed;
+      inset: -24px;
+      background-size: cover;
+      background-repeat: no-repeat;
+      transition: opacity 1.1s cubic-bezier(0.4, 0, 0.2, 1), filter 0.3s ease;
+      pointer-events: none;
     }
 
-    /* 精选内置高级渐变背景主题 */
-    .theme-wood {
-      background: linear-gradient(155deg, #2c3e50 0%, #4ca1af 100%);
+    /* 自适应文字阴影 */
+    .adaptive-shadow-dark-bg {
+      text-shadow: 0 2px 16px rgba(62, 39, 35, 0.45), 0 1px 3px rgba(0, 0, 0, 0.5);
     }
-    .theme-aurora {
-      background: linear-gradient(145deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
-    }
-    .theme-sunset {
-      background: linear-gradient(145deg, #c94b4b 0%, #4b134f 100%);
-    }
-    .theme-sakura {
-      background: linear-gradient(145deg, #ee9ca7 0%, #ffdde1 100%);
-    }
-    .theme-nordic {
-      background: linear-gradient(145deg, #3a6186 0%, #89253e 100%);
+    .adaptive-shadow-light-bg {
+      text-shadow: 0 2px 20px rgba(45, 26, 14, 0.8), 0 1px 4px rgba(0, 0, 0, 0.85);
     }
 
-    /* 锁屏级文字柔和阴影，确保任何浅色/深色照片上都清晰 */
-    .hero-text-shadow {
-      text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.45);
-    }
-
-    /* 高级液态毛玻璃胶囊按钮 */
-    .glass-pill {
-      background: rgba(255, 255, 255, 0.18);
+    /* 可爱暖焦糖半透明玻璃胶囊 */
+    .cute-glass-pill {
+      background: rgba(62, 39, 35, 0.38);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.28);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-      transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.16s ease;
+      border: 1.5px solid rgba(254, 243, 199, 0.36);
+      box-shadow: 0 6px 20px rgba(62, 39, 35, 0.18);
+      transition: transform 0.15s ease, background 0.15s ease;
     }
-    .glass-pill:active {
+    .cute-glass-pill:active {
       transform: scale(0.94);
-      background: rgba(255, 255, 255, 0.3);
+      background: rgba(62, 39, 35, 0.56);
     }
 
-    /* 通透磨砂玻璃列表行 (不遮挡背景照片) */
-    .glass-list-item {
-      background: rgba(20, 24, 34, 0.32);
+    /* 暖奶油磨砂列表卡片 */
+    .cute-list-item {
+      background: rgba(255, 250, 240, 0.86);
       backdrop-filter: blur(22px);
       -webkit-backdrop-filter: blur(22px);
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-      transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.16s ease;
+      border: 1.5px solid rgba(253, 230, 138, 0.65);
+      box-shadow: 0 8px 22px rgba(74, 46, 24, 0.14);
+      transition: transform 0.15s ease;
     }
-    .glass-list-item:active {
+    .cute-list-item:active {
       transform: scale(0.98);
-      background: rgba(20, 24, 34, 0.46);
     }
 
-    /* 详情页磨砂玻璃大卡片 */
-    .glass-detail-card {
-      background: rgba(255, 255, 255, 0.16);
+    /* 详情页暖奶白毛玻璃卡片 */
+    .card-style-glass {
+      background: rgba(62, 39, 35, 0.38);
       backdrop-filter: blur(26px);
       -webkit-backdrop-filter: blur(26px);
-      border: 1px solid rgba(255, 255, 255, 0.32);
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+      border: 2px solid rgba(253, 230, 138, 0.45);
+      box-shadow: 0 24px 60px rgba(45, 26, 14, 0.32);
     }
 
-    /* 隐藏的文件上传控件 */
-    #bg-file-input {
-      display: none;
+    /* 轻松熊温柔浮动动画 */
+    @keyframes gentleBob {
+      0%, 100% { transform: translateY(0px) rotate(-1.5deg); }
+      50% { transform: translateY(-4px) rotate(1.5deg); }
+    }
+    .bear-gentle-bob {
+      animation: gentleBob 4s ease-in-out infinite;
     }
 
-    /* 视图切换 */
-    .view-section {
-      transition: opacity 0.24s ease;
+    @keyframes shakeError {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-7px); }
+      40%, 80% { transform: translateX(7px); }
     }
-    .hidden-view {
-      display: none !important;
+    .animate-shake {
+      animation: shakeError 0.38s ease-in-out;
     }
+
+    /* 点击飘爱心动画 */
+    @keyframes floatHeart {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+      }
+      50% {
+        opacity: 0.95;
+        transform: translate(calc(-50% + var(--drift)), -90px) scale(1.15) rotate(var(--rot));
+      }
+      100% {
+        opacity: 0;
+        transform: translate(calc(-50% + var(--drift) * 1.4), -175px) scale(0.85) rotate(var(--rot));
+      }
+    }
+    .floating-heart {
+      position: fixed;
+      pointer-events: none;
+      z-index: 60;
+      animation: floatHeart 1.25s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      filter: drop-shadow(0 4px 10px rgba(244, 63, 94, 0.45));
+    }
+
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+    .hidden-view { display: none !important; }
   </style>
 </head>
-<body class="text-white min-h-screen flex flex-col">
+<body class="text-white select-none" onclick="spawnHeartOnTap(event)">
 
-  <!-- 全局隐藏相册选择器 -->
-  <input type="file" id="bg-file-input" accept="image/*" onchange="handleBgFileSelect(event)" />
+  <!-- 多图上传隐藏输入 -->
+  <input type="file" id="bg-file-input" accept="image/*" multiple onchange="handleMultiBgUpload(event)" class="hidden" />
+  <!-- 备份文件导入隐藏输入 -->
+  <input type="file" id="backup-file-input" accept=".json,application/json" onchange="handleImportBackup(event)" class="hidden" />
 
-  <!-- ==================== 全局固定高清壁纸底层 (彻底解决滚动拉伸与遮挡) ==================== -->
-  <div id="global-bg-layer" class="fixed inset-0 z-0 theme-wood transition-all duration-300 bg-cover bg-no-repeat" style="background-position: 50% 35%;"></div>
-  <!-- 柔和暗角渐变遮罩，保护上下文字可读性，中间保持最高通透度 -->
-  <div id="global-scrim-layer" class="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300" style="background: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.04) 42%, rgba(0,0,0,0.48) 100%);"></div>
+  <!-- ==================== 0. 独立私密登录与身份选择页 ==================== -->
+  <div id="lock-screen-view" onclick="event.stopPropagation()" class="fixed inset-0 z-[100] flex flex-col items-center justify-center px-6 bg-gradient-to-b from-[#fffaf0] via-[#faebd7] to-[#f5dec0] text-[#5c3a21] transition-opacity duration-500">
+    <div class="absolute top-16 left-8 w-36 h-36 rounded-full bg-amber-200/50 blur-2xl pointer-events-none"></div>
+    <div class="absolute bottom-20 right-8 w-44 h-44 rounded-full bg-rose-200/45 blur-2xl pointer-events-none"></div>
 
-  <!-- ==================== 1. 沉浸式锁屏风主视图 ==================== -->
-  <div id="home-view" class="view-section flex-1 flex flex-col min-h-screen pb-24 relative z-10">
+    <div id="lock-card" class="relative w-full max-w-xs bg-[#fffdf9]/95 backdrop-blur-xl border-2 border-amber-900/10 rounded-[34px] p-7 shadow-[0_20px_50px_rgba(120,53,15,0.14)] text-center">
+      <!-- 轻松熊 SVG 萌系头像装饰 -->
+      <div class="w-24 h-20 mx-auto -mt-14 mb-3 bear-gentle-bob">
+        <svg viewBox="0 0 160 130" class="w-full h-full drop-shadow-md">
+          <circle cx="36" cy="36" r="22" fill="#8b5a2b" />
+          <circle cx="36" cy="36" r="12" fill="#f6c445" />
+          <circle cx="124" cy="36" r="22" fill="#8b5a2b" />
+          <circle cx="124" cy="36" r="12" fill="#f6c445" />
+          <ellipse cx="80" cy="72" rx="58" ry="48" fill="#8b5a2b" />
+          <ellipse cx="42" cy="76" rx="9" ry="5" fill="#f48fb1" opacity="0.68" />
+          <ellipse cx="118" cy="76" rx="9" ry="5" fill="#f48fb1" opacity="0.68" />
+          <circle cx="56" cy="65" r="5" fill="#2d1a0e" />
+          <circle cx="104" cy="65" r="5" fill="#2d1a0e" />
+          <circle cx="54.5" cy="63.5" r="1.5" fill="#ffffff" />
+          <circle cx="102.5" cy="63.5" r="1.5" fill="#ffffff" />
+          <ellipse cx="80" cy="82" rx="22" ry="17" fill="#fffdf9" />
+          <ellipse cx="80" cy="76" rx="5.5" ry="4" fill="#2d1a0e" />
+          <path d="M80 80 L72 87 M80 80 L88 87" stroke="#2d1a0e" stroke-width="3" stroke-linecap="round" />
+        </svg>
+      </div>
 
-    <!-- 顶部极简透明悬浮栏 (无厚重色块) -->
-    <header class="safe-top sticky top-0 z-30">
-      <div class="py-2.5 px-4 flex items-center justify-between max-w-xl mx-auto">
-        <!-- 左侧分类抽屉 -->
-        <button onclick="toggleDrawer(true)" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-white text-sm" aria-label="分类菜单">
-          <i class="fa-solid fa-bars-staggered"></i>
-        </button>
+      <!-- 步骤 A：输入共同秘密口令 -->
+      <div id="lock-step-password">
+        <span class="inline-block px-3 py-0.5 rounded-full bg-amber-100 text-amber-800 text-[11px] font-bold tracking-wider mb-2">
+          HONEY DIARY · 专属小屋
+        </span>
+        <h2 class="text-lg font-extrabold text-[#4a2e18]">输入双人秘密口令</h2>
+        <p id="lock-hint-text" class="text-xs text-[#8c6239] mt-1">
+          只有我们两个人知道的专属暗号 🍯
+        </p>
 
-        <!-- 中间倒数本胶囊切换 -->
-        <button onclick="toggleDrawer(true)" class="glass-pill px-3.5 py-1.5 rounded-full flex items-center space-x-1.5">
-          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span id="current-category-badge" class="text-xs font-semibold tracking-wide text-white">全部事件</span>
-          <i class="fa-solid fa-chevron-down text-[9px] text-white/75"></i>
-        </button>
+        <div class="mt-5 space-y-3">
+          <div class="relative">
+            <input id="lock-password-input" type="password" inputmode="text" autocapitalize="none" autocorrect="off" autocomplete="off"
+                   oninput="clearLockError()"
+                   onkeydown="if(event.key==='Enter') verifyLockPassword()"
+                   placeholder="请输入秘密暗号..."
+                   class="w-full pl-4 pr-11 py-3.5 rounded-2xl bg-[#fdf6eb] border-2 border-amber-900/15 text-center text-sm font-bold tracking-wider text-[#4a2e18] placeholder:text-amber-900/35 placeholder:font-normal placeholder:tracking-normal focus:outline-none focus:border-amber-500 transition-colors" />
+            <button type="button" onclick="toggleLockPwdVisibility()" id="lock-eye-btn" class="absolute right-3 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full text-amber-900/45 hover:text-amber-800 flex items-center justify-center" aria-label="显示或隐藏密码">
+              <i class="fa-regular fa-eye"></i>
+            </button>
+          </div>
 
-        <!-- 右侧工具：更换壁纸、纯享预览、新增 -->
-        <div class="flex items-center space-x-2">
-          <button onclick="togglePurePhotoMode()" id="pure-mode-btn" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-white text-sm" title="隐藏文字纯享壁纸">
-            <i class="fa-regular fa-eye"></i>
-          </button>
-          <button onclick="openBgSettingsModal()" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-white text-sm" title="自定义背景壁纸">
-            <i class="fa-regular fa-image"></i>
-          </button>
-          <button onclick="openEditorModal()" class="w-9 h-9 rounded-full bg-white text-slate-900 shadow-lg active:scale-95 flex items-center justify-center text-sm font-bold transition" aria-label="添加倒数日">
-            <i class="fa-solid fa-plus"></i>
+          <div id="lock-error-box" class="hidden rounded-xl bg-rose-50 border border-rose-200 px-3 py-2 text-left flex items-start space-x-2">
+            <i class="fa-solid fa-circle-exclamation text-rose-500 text-xs mt-0.5 shrink-0"></i>
+            <p id="lock-error-msg" class="text-[11px] text-rose-600 font-semibold leading-snug">
+              暗号不对哦，再仔细想想我们的秘密~
+            </p>
+          </div>
+
+          <button type="button" onclick="verifyLockPassword()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-[#8b5a2b] to-[#6f431d] text-amber-50 font-bold text-sm shadow-lg shadow-amber-900/20 active:scale-95 transition">
+            🧸 验证并继续
           </button>
         </div>
+      </div>
+
+      <!-- 步骤 B：密码验证通过后，选择你是老公还是老婆 -->
+      <div id="lock-step-role" class="hidden">
+        <span class="inline-block px-3 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-bold tracking-wider mb-2">
+          ✓ 暗号验证通过 · 独立空间
+        </span>
+        <h2 class="text-lg font-extrabold text-[#4a2e18]">请选择你的身份</h2>
+        <p class="text-xs text-[#8c6239] mt-1">
+          两人背景图、节日与设置独立保存，互不干扰 ✨
+        </p>
+
+        <div class="mt-5 grid grid-cols-2 gap-3">
+          <button type="button" onclick="selectUserAccount('husband')" class="group p-4 rounded-3xl bg-gradient-to-b from-sky-50 to-blue-100/70 border-2 border-sky-200/80 hover:border-sky-400 active:scale-95 transition flex flex-col items-center">
+            <div class="w-12 h-12 rounded-2xl bg-sky-500/15 text-2xl flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              👨🏻
+            </div>
+            <span class="text-sm font-extrabold text-sky-950">我是老公</span>
+            <span class="text-[10px] text-sky-700 font-semibold mt-0.5">进入老公独立空间</span>
+          </button>
+
+          <button type="button" onclick="selectUserAccount('wife')" class="group p-4 rounded-3xl bg-gradient-to-b from-rose-50 to-pink-100/70 border-2 border-rose-200/80 hover:border-rose-400 active:scale-95 transition flex flex-col items-center">
+            <div class="w-12 h-12 rounded-2xl bg-rose-500/15 text-2xl flex items-center justify-center mb-2 group-hover:scale-110 transition">
+              👩🏻
+            </div>
+            <span class="text-sm font-extrabold text-rose-950">我是老婆</span>
+            <span class="text-[10px] text-rose-700 font-semibold mt-0.5">进入老婆独立空间</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 1. 双层淡入淡出幻灯片背景 ==================== -->
+  <div id="bg-slide-a" class="bg-slide-layer theme-0 opacity-100" style="z-index: 0; background-position: center center;"></div>
+  <div id="bg-slide-b" class="bg-slide-layer theme-0 opacity-0" style="z-index: 0; background-position: center center;"></div>
+  <div id="global-scrim-layer" class="fixed inset-0 pointer-events-none transition-all duration-300" style="z-index: 1; background: linear-gradient(180deg, rgba(62,39,35,0.34) 0%, rgba(0,0,0,0.06) 45%, rgba(62,39,35,0.52) 100%);"></div>
+
+  <!-- ==================== 2. 主界面 (轻松熊暖萌风) ==================== -->
+  <div id="home-view" class="relative z-10 w-full h-full flex flex-col justify-between">
+
+    <!-- 顶部安全区悬浮栏 -->
+    <header class="safe-header px-4 pb-2 flex items-center justify-between max-w-xl w-full mx-auto relative z-40">
+      <button type="button" onclick="event.stopPropagation(); toggleDrawer(true)" class="cute-glass-pill w-10 h-10 rounded-full flex items-center justify-center text-amber-100 text-sm shrink-0" aria-label="倒数本">
+        <i class="fa-solid fa-bars-staggered"></i>
+      </button>
+
+      <!-- 中间顶部短句 + 当前身份切换胶囊 -->
+      <div class="flex items-center space-x-1.5 max-w-[54%]">
+        <button type="button" onclick="event.stopPropagation(); openCustomTopTextModal()" class="cute-glass-pill px-3.5 py-1.5 rounded-full flex items-center space-x-1.5 min-w-0">
+          <span class="text-sm leading-none shrink-0">🧸</span>
+          <span id="custom-top-text" class="text-xs font-bold tracking-wide text-amber-50 truncate">我们的专属纪念</span>
+          <i class="fa-solid fa-pen text-[9px] text-amber-200/80 shrink-0"></i>
+        </button>
+      </div>
+
+      <div class="flex items-center space-x-1.5 shrink-0">
+        <!-- 当前角色快速切换按钮 -->
+        <button type="button" onclick="event.stopPropagation(); openRoleSwitchModal()" id="header-role-badge" class="cute-glass-pill px-2.5 h-10 rounded-full flex items-center space-x-1 text-xs font-extrabold text-amber-100" title="切换老公/老婆账号">
+          <span id="header-role-emoji">👨🏻</span>
+          <span id="header-role-name" class="text-[11px]">老公</span>
+        </button>
+        <button type="button" onclick="event.stopPropagation(); togglePurePhotoMode()" id="pure-mode-btn" class="cute-glass-pill w-9 h-9 rounded-full flex items-center justify-center text-amber-100 text-xs" title="纯享壁纸">
+          <i class="fa-regular fa-eye"></i>
+        </button>
+        <button type="button" onclick="event.stopPropagation(); openEditorModal()" class="w-9 h-9 rounded-full bg-gradient-to-br from-amber-200 to-amber-300 text-[#4a2e18] border border-white/60 shadow-lg active:scale-95 flex items-center justify-center text-xs font-extrabold transition" aria-label="添加">
+          <i class="fa-solid fa-plus"></i>
+        </button>
       </div>
     </header>
 
-    <!-- 置顶展示区：采用 iOS 锁屏级无框悬浮排版，完全不遮挡女朋友照片！ -->
-    <section id="home-hero-section" class="px-5 pt-4 pb-6 max-w-xl w-full mx-auto transition-all duration-300">
-      <div id="pinned-container" class="cursor-pointer active:scale-[0.99] transition select-none" onclick="openPinnedDetail()">
-        <!-- 状态微标 -->
-        <div class="inline-flex items-center space-x-1.5 glass-pill px-3 py-1 rounded-full mb-2">
-          <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400" id="pinned-dot"></span>
-          <span class="text-[11px] font-semibold text-white/95 tracking-wide" id="pinned-badge-text">置顶倒数</span>
+    <!-- 核心置顶焦点区 (完全绑定当前账号真实存在的事件) -->
+    <section id="home-hero-section" class="px-5 pt-2 pb-3 max-w-xl w-full mx-auto transition-opacity duration-300 relative z-20">
+      <div id="hero-status-bar" class="flex items-center justify-between mb-3" onclick="event.stopPropagation()">
+        <div class="cute-glass-pill px-3 py-1 rounded-full inline-flex items-center space-x-1.5 text-[11px] font-bold text-amber-100">
+          <span id="hero-status-dot" class="w-2 h-2 rounded-full bg-amber-300"></span>
+          <span id="hero-status-label">置顶纪念 · 累计已过</span>
         </div>
 
-        <!-- 超大通透锁屏数字 + 标题 -->
+        <div id="milestone-badge" class="cute-glass-pill px-3 py-1 rounded-full text-[11px] font-bold text-amber-200 flex items-center space-x-1">
+          <i class="fa-solid fa-crown text-[10px] text-amber-300"></i>
+          <span id="milestone-text">距一周年还有 10 天</span>
+        </div>
+      </div>
+
+      <div id="hero-card-trigger" onclick="event.stopPropagation(); openHeroDetail()" class="cursor-pointer active:scale-[0.99] transition">
         <div class="flex items-baseline space-x-2">
-          <span id="pinned-days" class="num-tabular text-[76px] font-extrabold text-white tracking-tight leading-none hero-text-shadow">355</span>
-          <span class="text-base font-bold text-white/90 tracking-widest uppercase hero-text-shadow">Days</span>
+          <span id="hero-days" class="num-tabular text-[74px] font-black text-white tracking-tight leading-none adaptive-shadow-dark-bg">355</span>
+          <span class="text-sm font-extrabold text-amber-200 tracking-widest uppercase adaptive-shadow-dark-bg">Days</span>
         </div>
 
-        <h1 id="pinned-title" class="text-[22px] font-bold text-white mt-1.5 tracking-tight hero-text-shadow">和老婆在一起已经</h1>
-        <p id="pinned-date" class="text-xs text-white/80 font-medium mt-1 flex items-center space-x-1.5 hero-text-shadow">
-          <i class="fa-regular fa-calendar text-[11px]"></i>
-          <span>2025-12-04 星期四</span>
-        </p>
+        <div id="live-hms-bar" class="hidden mt-1.5 inline-flex items-center space-x-1.5 cute-glass-pill px-3 py-1 rounded-full text-xs font-mono font-bold text-amber-50 num-tabular">
+          <i class="fa-regular fa-clock text-amber-300 text-[11px]"></i>
+          <span id="live-hms-text">12 时 34 分 56 秒</span>
+        </div>
+
+        <div class="flex items-center justify-between mt-2">
+          <div>
+            <h1 id="hero-title" class="text-xl font-extrabold text-white tracking-tight adaptive-shadow-dark-bg">和老婆在一起已经</h1>
+            <p id="hero-date" class="text-xs text-amber-100/90 font-semibold mt-0.5 flex items-center space-x-1.5 adaptive-shadow-dark-bg">
+              <i class="fa-regular fa-calendar text-[11px]"></i>
+              <span>2025-12-04 星期四</span>
+            </p>
+          </div>
+          <button type="button" onclick="event.stopPropagation(); quickEditHeroMode()" class="cute-glass-pill px-3.5 py-1.5 rounded-full text-[11px] font-bold text-amber-100">
+            ✏️ 修改日期
+          </button>
+        </div>
+      </div>
+
+      <div id="hero-empty-state" onclick="event.stopPropagation(); openEditorModal()" class="hidden cute-glass-pill rounded-3xl p-5 text-center cursor-pointer">
+        <div class="text-3xl mb-1.5">🧸</div>
+        <p class="text-sm font-bold text-amber-50">当前空间还没有倒数纪念日哦</p>
+        <p class="text-xs text-amber-200/80 mt-0.5">点击这里或右上角 + 号，记录专属心动日子吧~</p>
       </div>
     </section>
 
-    <!-- 中间留白呼吸区：把画面中心完整留给照片主体 -->
-    <div id="photo-breathing-space" class="flex-1 min-h-[120px] transition-all duration-300" onclick="openBgSettingsModal()"></div>
-
-    <!-- 底部通透磨砂列表区 -->
-    <main id="events-list" class="px-4 space-y-2.5 max-w-xl w-full mx-auto transition-opacity duration-300">
-      <!-- 动态渲染列表项 -->
-    </main>
-
-    <!-- 空状态提示 -->
-    <div id="empty-state" class="hidden flex flex-col items-center justify-center py-12 text-white/80">
-      <p class="text-sm font-medium hero-text-shadow">当前分类暂无倒数日</p>
-      <button onclick="openEditorModal()" class="mt-3 glass-pill px-5 py-2 text-white text-xs font-semibold rounded-full">立即添加事件</button>
+    <!-- 中间通透留白区 + 幻灯片底部指示器 -->
+    <div id="photo-breathing-space" class="flex-1 min-h-[60px] flex flex-col justify-end items-center pb-2 relative z-20">
+      <div id="slide-indicator-bar" onclick="event.stopPropagation()" class="cute-glass-pill px-3 py-1.5 rounded-full flex items-center space-x-2.5">
+        <button type="button" onclick="prevSlide()" class="text-amber-100/80 hover:text-white text-[10px] px-1" aria-label="上一张">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <div id="slide-dots" class="flex items-center space-x-1.5"></div>
+        <button type="button" onclick="nextSlide()" class="text-amber-100/80 hover:text-white text-[10px] px-1" aria-label="下一张">
+          <i class="fa-solid fa-chevron-right"></i>
+        </button>
+      </div>
     </div>
 
-    <!-- 底部悬浮暗色磨砂导航栏 -->
-    <nav id="home-bottom-nav" class="fixed bottom-0 inset-x-0 bg-black/35 backdrop-blur-2xl border-t border-white/15 safe-bottom z-30 transition-opacity duration-300">
-      <div class="max-w-xl mx-auto py-2 px-6 flex items-center justify-between text-white/60">
-        <button onclick="switchTab('all')" id="tab-all" class="flex flex-col items-center text-white transition">
-          <i class="fa-solid fa-calendar-day text-base"></i>
-          <span class="text-[10px] mt-1 font-semibold">倒数日</span>
+    <!-- 底部暖奶白萌系事件列表 -->
+    <main id="events-list-wrapper" onclick="event.stopPropagation()" class="px-4 pb-2 max-w-xl w-full mx-auto max-h-[26vh] overflow-y-auto no-scrollbar transition-opacity duration-300 relative z-20">
+      <div id="events-list" class="space-y-2"></div>
+    </main>
+
+    <!-- 底部暖奶白圆润导航栏 -->
+    <nav id="home-bottom-nav" onclick="event.stopPropagation()" class="bg-[#fffaf0]/92 backdrop-blur-2xl border-t border-amber-900/10 safe-bottom-bar z-30 transition-opacity duration-300 rounded-t-[26px] shadow-[0_-8px_30px_rgba(74,46,24,0.12)]">
+      <div class="max-w-xl mx-auto pt-2.5 px-6 flex items-center justify-between text-[#8c6239]">
+        <button type="button" onclick="selectCategory('全部')" class="flex flex-col items-center text-[#5c3a21] transition">
+          <i class="fa-solid fa-calendar-heart text-base text-rose-400"></i>
+          <span class="text-[10px] mt-1 font-extrabold">倒数日</span>
         </button>
-        <button onclick="toggleDrawer(true)" class="flex flex-col items-center hover:text-white transition">
-          <i class="fa-solid fa-layer-group text-base"></i>
-          <span class="text-[10px] mt-1 font-medium">倒数本</span>
+        <button type="button" onclick="openBgSettingsModal()" class="flex flex-col items-center hover:text-[#5c3a21] transition">
+          <i class="fa-solid fa-photo-film text-base"></i>
+          <span class="text-[10px] mt-1 font-bold">相册轮播</span>
         </button>
-        <button onclick="openBgSettingsModal()" class="flex flex-col items-center hover:text-white transition">
+        <button type="button" onclick="openHeroDetail()" class="flex flex-col items-center hover:text-[#5c3a21] transition">
           <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
-          <span class="text-[10px] mt-1 font-medium">壁纸构图</span>
+          <span class="text-[10px] mt-1 font-bold">保存海报</span>
         </button>
-        <button onclick="showInstallGuide()" class="flex flex-col items-center hover:text-white transition">
-          <i class="fa-brands fa-apple text-base"></i>
-          <span class="text-[10px] mt-1 font-medium">装到桌面</span>
-        </button>
-        <button onclick="openBackupModal()" class="flex flex-col items-center hover:text-white transition">
-          <i class="fa-solid fa-cloud-arrow-up text-base"></i>
-          <span class="text-[10px] mt-1 font-medium">备份</span>
+        <button type="button" onclick="openPreferencesModal()" class="flex flex-col items-center hover:text-[#5c3a21] transition">
+          <i class="fa-solid fa-sliders text-base"></i>
+          <span class="text-[10px] mt-1 font-bold">小屋设置</span>
         </button>
       </div>
     </nav>
   </div>
 
-  <!-- ==================== 2. 详情海报视图 (3种高级样式，默认无遮挡) ==================== -->
-  <div id="detail-view" class="view-section hidden-view min-h-screen flex flex-col justify-between relative z-10">
-
-    <!-- 详情页顶部栏 -->
-    <header class="safe-top px-4 pt-2.5 flex items-center justify-between relative z-10">
-      <button onclick="closeDetail()" class="glass-pill px-3.5 py-1.5 rounded-full text-xs font-semibold text-white flex items-center space-x-1">
-        <i class="fa-solid fa-chevron-left text-[11px]"></i>
-        <span>返回</span>
+  <!-- ==================== 3. 详情海报视图 ==================== -->
+  <div id="detail-view" onclick="event.stopPropagation()" class="hidden-view relative z-20 w-full h-full flex flex-col justify-between">
+    <header class="safe-header px-4 pb-2 flex items-center justify-between max-w-xl w-full mx-auto relative z-40">
+      <button type="button" onclick="closeDetail()" class="cute-glass-pill px-3.5 py-2 rounded-full text-xs font-bold text-amber-50 flex items-center space-x-1.5">
+        <i class="fa-solid fa-arrow-left text-xs"></i>
+        <span>返回主页</span>
       </button>
 
-      <!-- 卡片形态切换胶囊：无框海报 / 通透玻璃 / 经典白卡 -->
-      <div class="glass-pill p-0.5 rounded-full flex items-center text-[11px] font-semibold">
-        <button onclick="setDetailCardStyle('frameless')" id="style-btn-frameless" class="px-2.5 py-1 rounded-full bg-white text-slate-900 transition">无框海报</button>
-        <button onclick="setDetailCardStyle('glass')" id="style-btn-glass" class="px-2.5 py-1 rounded-full text-white/85 transition">毛玻璃</button>
-        <button onclick="setDetailCardStyle('classic')" id="style-btn-classic" class="px-2.5 py-1 rounded-full text-white/85 transition">经典卡</button>
+      <div class="cute-glass-pill p-1 rounded-full flex items-center text-[11px] font-bold">
+        <button type="button" onclick="setDetailCardStyle('glass')" id="style-btn-glass" class="px-3 py-1 rounded-full bg-amber-200 text-[#4a2e18] transition">焦糖毛玻璃</button>
+        <button type="button" onclick="setDetailCardStyle('classic')" id="style-btn-classic" class="px-3 py-1 rounded-full text-amber-50/90 transition">奶白经典卡</button>
       </div>
 
-      <button onclick="editCurrentDetail()" class="glass-pill px-3.5 py-1.5 rounded-full text-xs font-semibold text-white">
+      <button type="button" onclick="editCurrentDetail()" class="cute-glass-pill px-3.5 py-2 rounded-full text-xs font-bold text-amber-50">
         编辑
       </button>
     </header>
 
-    <!-- 居中海报展示区 -->
-    <div class="px-6 my-auto flex flex-col items-center justify-between flex-1 py-8 relative z-10">
-      <!-- 顶部留白，把画面上半部分完全留给女朋友的脸 -->
-      <div class="flex-1"></div>
-
-      <!-- 卡片容器 (根据选择的样式动态切换外观) -->
-      <div id="capture-card" class="w-full max-w-[330px] transition-all duration-300 text-center">
-        <!-- 顶部标题胶囊/色条 -->
-        <div id="detail-card-header" class="inline-block glass-pill px-4 py-1.5 rounded-full text-white font-semibold text-sm tracking-wide mb-2">
-          和老婆在一起已经
+    <div class="px-6 my-auto flex flex-col items-center justify-center flex-1">
+      <div id="detail-card-box" class="relative w-full max-w-[320px] card-style-glass rounded-[32px] overflow-visible transition-all duration-300 text-center">
+        <div class="w-20 h-14 mx-auto -mt-10 -mb-2 relative z-20 bear-gentle-bob pointer-events-none">
+          <svg viewBox="0 0 160 115" class="w-full h-full drop-shadow">
+            <circle cx="36" cy="36" r="21" fill="#8b5a2b" />
+            <circle cx="36" cy="36" r="11" fill="#f6c445" />
+            <circle cx="124" cy="36" r="21" fill="#8b5a2b" />
+            <circle cx="124" cy="36" r="11" fill="#f6c445" />
+            <ellipse cx="80" cy="70" rx="55" ry="42" fill="#8b5a2b" />
+            <ellipse cx="42" cy="74" rx="8" ry="4.5" fill="#f48fb1" opacity="0.68" />
+            <ellipse cx="118" cy="74" rx="8" ry="4.5" fill="#f48fb1" opacity="0.68" />
+            <circle cx="56" cy="63" r="4.8" fill="#2d1a0e" />
+            <circle cx="104" cy="63" r="4.8" fill="#2d1a0e" />
+            <ellipse cx="80" cy="80" rx="20" ry="15" fill="#fffdf9" />
+            <ellipse cx="80" cy="74" rx="5" ry="3.8" fill="#2d1a0e" />
+            <path d="M80 77.5 L73 84 M80 77.5 L87 84" stroke="#2d1a0e" stroke-width="2.8" stroke-linecap="round" />
+          </svg>
         </div>
 
-        <!-- 中间超大数字 -->
-        <div id="detail-card-body" class="py-2 flex flex-col items-center justify-center">
-          <div id="detail-days-num" class="num-tabular text-[104px] font-black text-white leading-none tracking-tighter hero-text-shadow">
-            355
+        <div id="detail-card-inner" class="rounded-[30px] overflow-hidden">
+          <div id="detail-card-header" class="bg-amber-200/20 border-b border-amber-200/25 text-amber-50 py-3.5 px-5 font-extrabold text-base tracking-wide">
+            和老婆在一起已经
           </div>
-          <div id="detail-sub-unit" class="mt-2 text-xs text-white/90 font-semibold tracking-wider glass-pill px-3 py-0.5 rounded-full">
-            约 50 周 5 天
-          </div>
-        </div>
 
-        <!-- 底部目标日 -->
-        <div id="detail-card-footer" class="mt-2 text-xs text-white/85 font-medium hero-text-shadow">
-          <span id="detail-target-date">目标日: 2025-12-04 星期四</span>
+          <div id="detail-card-body" class="py-8 px-4 flex flex-col items-center justify-center">
+            <div id="detail-days-num" class="num-tabular text-[92px] font-black text-white leading-none tracking-tighter adaptive-shadow-dark-bg">
+              355
+            </div>
+            <div id="detail-live-hms" class="hidden mt-2 text-xs font-mono font-bold text-amber-200">
+              00:00:00
+            </div>
+            <div id="detail-sub-unit" class="mt-3 text-xs text-amber-50 font-bold bg-amber-200/20 px-3.5 py-1 rounded-full">
+              约 50 周 5 天
+            </div>
+          </div>
+
+          <div id="detail-card-footer" class="bg-black/15 border-t border-amber-200/20 py-3 px-4 text-xs text-amber-100/90 font-semibold">
+            <span id="detail-target-date">目标日: 2025-12-04 星期四</span>
+          </div>
         </div>
       </div>
 
-      <!-- 底部操作按钮组 -->
-      <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5">
-        <button onclick="generateCardImage()" class="bg-white text-slate-900 active:scale-95 px-4 py-2.5 rounded-full text-xs font-bold shadow-xl flex items-center space-x-1.5 transition">
-          <i class="fa-solid fa-download"></i>
-          <span>存为海报图</span>
+      <div class="mt-7 flex items-center justify-center space-x-3">
+        <button type="button" onclick="generateCleanPoster()" class="bg-gradient-to-r from-amber-200 to-amber-300 text-[#4a2e18] active:scale-95 px-5 py-3 rounded-full text-xs font-extrabold shadow-xl border border-white/60 flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+          <span>保存萌系年度海报</span>
         </button>
-        <button onclick="shareText()" class="glass-pill text-white px-4 py-2.5 rounded-full text-xs font-bold flex items-center space-x-1.5">
-          <i class="fa-solid fa-share-nodes"></i>
+        <button type="button" onclick="shareText()" class="cute-glass-pill text-amber-50 px-4 py-3 rounded-full text-xs font-bold flex items-center space-x-1.5">
+          <i class="fa-solid fa-copy"></i>
           <span>复制文案</span>
         </button>
-        <button onclick="openBgSettingsModal()" class="glass-pill text-white px-3.5 py-2.5 rounded-full text-xs font-bold flex items-center space-x-1.5">
-          <i class="fa-regular fa-image"></i>
-          <span>调整背景</span>
-        </button>
-        <button onclick="pinCurrentDetail()" class="glass-pill text-white w-9 h-9 rounded-full flex items-center justify-center" title="设为首页置顶">
-          <i class="fa-solid fa-thumbtack text-xs"></i>
-        </button>
       </div>
     </div>
 
-    <div class="safe-bottom h-2"></div>
+    <div class="safe-bottom-bar h-4"></div>
   </div>
 
-  <!-- ==================== 3. 自定义背景壁纸与构图微调弹窗 ==================== -->
-  <div id="bg-modal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-xs" onclick="closeBgSettingsModal()"></div>
-    <div class="relative w-full max-w-md bg-slate-900/95 backdrop-blur-2xl text-white border border-white/15 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden safe-bottom z-10">
-      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-        <h3 class="font-bold text-base">壁纸与画面构图微调</h3>
-        <button onclick="closeBgSettingsModal()" class="w-7 h-7 rounded-full bg-white/10 text-white/80 flex items-center justify-center text-xs">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
+  <!-- ==================== 4. 独立无遮挡实时壁纸预览台 ==================== -->
+  <div id="bg-modal" onclick="event.stopPropagation()" class="fixed inset-0 z-50 hidden flex flex-col justify-between bg-[#fffaf0]/98 text-[#5c3a21] backdrop-blur-xl">
+    <div class="safe-header px-5 pb-3 flex items-center justify-between border-b border-amber-900/10 shrink-0">
+      <button type="button" onclick="closeBgSettingsModal()" class="px-3.5 py-1.5 rounded-full bg-amber-100 text-xs font-bold text-[#5c3a21] flex items-center space-x-1">
+        <i class="fa-solid fa-chevron-left"></i>
+        <span>返回</span>
+      </button>
+      <h3 id="bg-modal-title" class="font-extrabold text-sm text-[#4a2e18]">🧸 老公的专属相册轮播</h3>
+      <button type="button" onclick="closeBgSettingsModal()" class="text-xs font-extrabold bg-[#8b5a2b] text-amber-50 px-4 py-1.5 rounded-full shadow">完成</button>
+    </div>
 
-      <div class="p-5 space-y-5">
-        <!-- 相册上传大按钮 -->
-        <div onclick="triggerPhotoUpload()" class="border border-dashed border-white/30 bg-white/5 active:bg-white/10 rounded-2xl p-4 flex items-center space-x-4 cursor-pointer transition">
-          <div class="w-12 h-12 rounded-2xl bg-white text-slate-900 flex items-center justify-center text-xl shrink-0 shadow-md">
-            <i class="fa-solid fa-camera-retro"></i>
-          </div>
+    <div class="px-5 pt-3 pb-2 flex flex-col items-center justify-center shrink-0">
+      <div class="relative w-44 h-64 rounded-[28px] overflow-hidden border-4 border-amber-200/80 shadow-xl bg-[#4e342e]">
+        <div id="preview-stage-img" class="absolute -inset-4 bg-cover bg-center transition-none theme-0"></div>
+        <div id="preview-stage-scrim" class="absolute inset-0 pointer-events-none"></div>
+        <div class="relative z-10 h-full flex flex-col justify-between p-3.5 pointer-events-none">
+          <span class="self-start text-[9px] px-2 py-0.5 rounded-full bg-[#4a2e18]/55 text-amber-100 backdrop-blur-xs font-bold">🧸 实时效果预览</span>
           <div>
-            <p class="text-sm font-bold text-white">从手机相册选择照片</p>
-            <p class="text-xs text-white/60 mt-0.5">支持竖屏人像高清适配，自动本地保存</p>
+            <div class="text-2xl font-black text-white leading-none drop-shadow">355 <span class="text-[10px] font-bold text-amber-200">DAYS</span></div>
+            <div class="text-[10px] text-amber-100/90 mt-1 drop-shadow">独立空间 · 互不干扰</div>
           </div>
         </div>
+      </div>
+    </div>
 
-        <!-- 当前自定义图片预览与构图滑块 -->
-        <div id="custom-bg-controls" class="hidden space-y-4 bg-white/5 p-4 rounded-2xl border border-white/10">
-          <div class="flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-              <img id="bg-preview-thumb" src="" alt="壁纸预览" class="w-11 h-11 rounded-xl object-cover border border-white/30" />
-              <div>
-                <p class="text-xs font-bold text-white">自定义照片已生效</p>
-                <p class="text-[11px] text-white/55">拖动下方滑块可调整人物位置</p>
-              </div>
-            </div>
-            <button onclick="clearCustomBg()" class="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold">
-              移除
-            </button>
-          </div>
-
-          <!-- 垂直构图位置滑块 (解决人脸被裁切的问题) -->
-          <div class="space-y-1.5 pt-1">
-            <div class="flex justify-between text-xs">
-              <span class="font-semibold text-white/80">画面上下位置微调</span>
-              <span id="pos-y-val-text" class="text-amber-300 font-bold">35%</span>
-            </div>
-            <input id="bg-pos-y-range" type="range" min="0" max="100" value="35" oninput="updateBgPositionY(this.value)" class="w-full accent-white" />
-          </div>
-
-          <!-- 遮罩暗度调节滑块 -->
-          <div class="space-y-1.5">
-            <div class="flex justify-between text-xs">
-              <span class="font-semibold text-white/80">背景暗度遮罩</span>
-              <span id="scrim-val-text" class="text-amber-300 font-bold">20%</span>
-            </div>
-            <input id="bg-scrim-range" type="range" min="0" max="60" value="20" oninput="updateScrimOpacity(this.value)" class="w-full accent-white" />
-          </div>
+    <div class="flex-1 overflow-y-auto px-5 pb-4 space-y-4 safe-bottom-bar max-w-md w-full mx-auto no-scrollbar">
+      <div onclick="triggerPhotoUpload()" class="border-2 border-dashed border-amber-400/70 bg-amber-100/55 active:bg-amber-200/60 rounded-2xl p-3.5 flex items-center space-x-3.5 cursor-pointer transition">
+        <div class="w-10 h-10 rounded-xl bg-[#8b5a2b] text-amber-50 flex items-center justify-center text-lg shrink-0 shadow">
+          <i class="fa-solid fa-plus"></i>
         </div>
-
-        <!-- 内置精选主题快捷切换 -->
         <div>
-          <p class="text-xs font-semibold text-white/50 mb-2.5">或选择内置高级渐变壁纸</p>
-          <div class="grid grid-cols-5 gap-2.5">
-            <button onclick="selectBuiltinTheme(0)" class="flex flex-col items-center space-y-1">
-              <span class="w-11 h-11 rounded-2xl theme-wood border border-white/20"></span>
-              <span class="text-[10px] text-white/75">深海</span>
-            </button>
-            <button onclick="selectBuiltinTheme(1)" class="flex flex-col items-center space-y-1">
-              <span class="w-11 h-11 rounded-2xl theme-aurora border border-white/20"></span>
-              <span class="text-[10px] text-white/75">极光</span>
-            </button>
-            <button onclick="selectBuiltinTheme(2)" class="flex flex-col items-center space-y-1">
-              <span class="w-11 h-11 rounded-2xl theme-sunset border border-white/20"></span>
-              <span class="text-[10px] text-white/75">晚霞</span>
-            </button>
-            <button onclick="selectBuiltinTheme(3)" class="flex flex-col items-center space-y-1">
-              <span class="w-11 h-11 rounded-2xl theme-sakura border border-white/20"></span>
-              <span class="text-[10px] text-white/75">樱粉</span>
-            </button>
-            <button onclick="selectBuiltinTheme(4)" class="flex flex-col items-center space-y-1">
-              <span class="w-11 h-11 rounded-2xl theme-nordic border border-white/20"></span>
-              <span class="text-[10px] text-white/75">暮色</span>
-            </button>
-          </div>
+          <p class="text-xs font-extrabold text-[#4a2e18]">上传背景图（自动裁切铺满画布）</p>
+          <p class="text-[11px] text-[#8c6239] mt-0.5">仅保存在当前身份空间中，最多 8 张</p>
         </div>
       </div>
-    </div>
-  </div>
 
-  <!-- ==================== 4. 左侧分类抽屉 (倒数本) ==================== -->
-  <div id="category-drawer" class="fixed inset-0 z-50 hidden">
-    <div class="absolute inset-0 bg-black/55 backdrop-blur-xs" onclick="toggleDrawer(false)"></div>
-    <div class="relative w-68 max-w-[76vw] h-full bg-slate-900/95 backdrop-blur-2xl text-white border-r border-white/10 shadow-2xl flex flex-col safe-top safe-bottom">
-      <div class="p-5 border-b border-white/10">
-        <div class="flex items-center space-x-3">
-          <div class="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-xl">
-            <i class="fa-solid fa-heart text-rose-400"></i>
+      <div id="slides-gallery-box" class="hidden space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold text-[#5c3a21]">已添加壁纸 (<span id="slide-count-label">0</span>/8)</span>
+          <button type="button" onclick="clearAllSlides()" class="text-[11px] text-rose-500 font-bold">全部删除</button>
+        </div>
+        <div id="slides-thumb-grid" class="grid grid-cols-4 gap-2.5"></div>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-amber-900/10 shadow-xs space-y-3.5">
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span class="font-bold text-[#5c3a21]">背景模糊度（实时预览）</span>
+            <span id="blur-val-text" class="text-[#8b5a2b] font-extrabold">0px</span>
           </div>
+          <input id="bg-blur-range" type="range" min="0" max="16" value="0" oninput="updateBgBlur(this.value)" class="w-full accent-[#8b5a2b]" />
+        </div>
+
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <span class="font-bold text-[#5c3a21]">暗化遮罩浓度（实时预览）</span>
+            <span id="scrim-val-text" class="text-[#8b5a2b] font-extrabold">22%</span>
+          </div>
+          <input id="bg-scrim-range" type="range" min="0" max="65" value="22" oninput="updateScrimOpacity(this.value)" class="w-full accent-[#8b5a2b]" />
+        </div>
+      </div>
+
+      <div class="bg-white p-4 rounded-2xl border border-amber-900/10 shadow-xs space-y-3">
+        <div class="flex items-center justify-between">
           <div>
-            <h2 class="font-bold text-base tracking-tight">Days Matter</h2>
-            <p class="text-[11px] text-white/60">沉浸式锁屏倒数日</p>
+            <p class="text-xs font-extrabold text-[#4a2e18]">自动淡入淡出轮播</p>
+            <p class="text-[11px] text-[#8c6239]">仅切换背景图，中间数字与卡片保持不动</p>
+          </div>
+          <input id="autoplay-toggle" type="checkbox" checked onchange="toggleAutoPlay(this.checked)" class="w-5 h-5 accent-[#8b5a2b] rounded" />
+        </div>
+
+        <div class="flex items-center justify-between pt-2 border-t border-amber-900/10">
+          <span class="text-xs font-bold text-[#5c3a21]">切换速度</span>
+          <div class="flex space-x-1.5">
+            <button type="button" onclick="setSlideInterval(5)" id="int-btn-5" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-[#8c6239]">5秒</button>
+            <button type="button" onclick="setSlideInterval(7)" id="int-btn-7" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-[#8b5a2b] text-amber-50">7秒</button>
+            <button type="button" onclick="setSlideInterval(10)" id="int-btn-10" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-[#8c6239]">10秒</button>
           </div>
         </div>
-      </div>
-
-      <div class="p-3.5 flex-1 overflow-y-auto space-y-1.5">
-        <p class="px-3 py-1 text-[11px] font-bold text-white/40 uppercase tracking-wider">我的倒数本</p>
-        <button onclick="selectCategory('全部')" class="cat-item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-semibold bg-white/15 text-white">
-          <span><i class="fa-solid fa-layer-group w-6 text-sky-400"></i>全部事件</span>
-          <span id="count-all" class="text-xs bg-white/15 px-2.5 py-0.5 rounded-full">0</span>
-        </button>
-        <button onclick="selectCategory('纪念日')" class="cat-item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium text-white/80 hover:bg-white/10">
-          <span><i class="fa-solid fa-heart w-6 text-rose-400"></i>恋爱纪念日</span>
-          <span id="count-love" class="text-xs text-white/50">0</span>
-        </button>
-        <button onclick="selectCategory('生活')" class="cat-item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium text-white/80 hover:bg-white/10">
-          <span><i class="fa-solid fa-mug-hot w-6 text-emerald-400"></i>生活日常</span>
-          <span id="count-life" class="text-xs text-white/50">0</span>
-        </button>
-        <button onclick="selectCategory('工作')" class="cat-item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium text-white/80 hover:bg-white/10">
-          <span><i class="fa-solid fa-briefcase w-6 text-amber-400"></i>工作学习</span>
-          <span id="count-work" class="text-xs text-white/50">0</span>
-        </button>
-      </div>
-
-      <div class="p-4 border-t border-white/10 text-[11px] text-white/45 text-center">
-        提示：在 Safari 中“添加到主屏幕”可隐藏浏览器地址栏
       </div>
     </div>
   </div>
 
-  <!-- ==================== 5. 新增 / 编辑倒数日弹窗 ==================== -->
-  <div id="editor-modal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
-    <div class="absolute inset-0 bg-black/60 backdrop-blur-xs" onclick="closeEditorModal()"></div>
-    <div class="relative w-full max-w-md bg-slate-900/95 backdrop-blur-2xl text-white border border-white/15 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden safe-bottom z-10">
-      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-        <button onclick="closeEditorModal()" class="text-sm text-white/70 font-medium">取消</button>
-        <h3 id="editor-modal-title" class="font-bold text-base">添加新日子</h3>
-        <button onclick="saveEvent()" class="text-xs font-bold bg-white text-slate-900 px-3.5 py-1.5 rounded-full">保存</button>
+  <!-- ==================== 5. 角色快速切换弹窗 ==================== -->
+  <div id="role-switch-modal" onclick="event.stopPropagation()" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
+    <div class="absolute inset-0 bg-[#3e2723]/60 backdrop-blur-xs" onclick="closeRoleSwitchModal()"></div>
+    <div class="relative bg-[#fffaf0] border-2 border-amber-200 text-[#5c3a21] rounded-[30px] p-6 max-w-xs w-full shadow-2xl z-10 text-center space-y-4">
+      <div class="flex items-center justify-between">
+        <span class="text-xs font-extrabold text-[#8c6239]">🧸 独立账号空间切换</span>
+        <button type="button" onclick="closeRoleSwitchModal()" class="text-xs font-bold text-[#8c6239]">关闭</button>
+      </div>
+      <p class="text-xs text-[#6f431d] leading-relaxed">
+        切换后将自动加载对应身份的专属壁纸、自定义节日与设置，互不干扰：
+      </p>
+      <div class="grid grid-cols-2 gap-3">
+        <button type="button" onclick="switchAccountFromModal('husband')" id="switch-card-husband" class="p-3.5 rounded-2xl border-2 border-sky-300 bg-sky-50 flex flex-col items-center active:scale-95 transition">
+          <span class="text-2xl mb-1">👨🏻</span>
+          <span class="text-xs font-extrabold text-sky-950">老公空间</span>
+          <span id="switch-tag-husband" class="text-[10px] text-sky-600 font-bold mt-0.5">当前使用中</span>
+        </button>
+        <button type="button" onclick="switchAccountFromModal('wife')" id="switch-card-wife" class="p-3.5 rounded-2xl border-2 border-rose-200 bg-rose-50 flex flex-col items-center active:scale-95 transition">
+          <span class="text-2xl mb-1">👩🏻</span>
+          <span class="text-xs font-extrabold text-rose-950">老婆空间</span>
+          <span id="switch-tag-wife" class="text-[10px] text-rose-500 font-bold mt-0.5">点击切换</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 6. 小屋设置与永久防丢备份弹窗 ==================== -->
+  <div id="pref-modal" onclick="event.stopPropagation()" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="absolute inset-0 bg-[#3e2723]/55 backdrop-blur-xs" onclick="closePreferencesModal()"></div>
+    <div class="relative w-full max-w-md bg-[#fffaf0] text-[#5c3a21] border-t-2 border-amber-200 rounded-t-[32px] sm:rounded-3xl shadow-2xl overflow-hidden safe-bottom-bar z-10 max-h-[85vh] flex flex-col">
+      <div class="px-5 py-4 border-b border-amber-900/10 flex items-center justify-between shrink-0">
+        <button type="button" onclick="closePreferencesModal()" class="text-xs font-bold text-[#8c6239]">返回</button>
+        <h3 id="pref-modal-title" class="font-extrabold text-base text-[#4a2e18]">🧸 老公的小屋设置</h3>
+        <button type="button" onclick="closePreferencesModal()" class="text-xs font-extrabold bg-[#8b5a2b] text-amber-50 px-3.5 py-1.5 rounded-full">完成</button>
+      </div>
+
+      <div class="p-5 space-y-4 overflow-y-auto no-scrollbar">
+        <!-- 双账号隔离状态与一键切换 -->
+        <div class="bg-amber-100/80 p-4 rounded-2xl border border-amber-300/70 flex items-center justify-between">
+          <div>
+            <p class="text-xs font-extrabold text-[#4a2e18]">当前空间：<span id="pref-role-label">👨🏻 老公独立账号</span></p>
+            <p class="text-[11px] text-[#8c6239] mt-0.5">背景、节日与偏好与另一半完全独立保存</p>
+          </div>
+          <button type="button" onclick="closePreferencesModal(); openRoleSwitchModal();" class="px-3 py-1.5 rounded-xl bg-[#8b5a2b] text-amber-50 text-xs font-bold shrink-0 shadow-xs">
+            切换身份
+          </button>
+        </div>
+
+        <!-- 双引擎持久化状态卡片 + 导出/导入备份 -->
+        <div class="bg-emerald-50/90 p-4 rounded-2xl border border-emerald-200 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+              <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+              <p class="text-xs font-extrabold text-emerald-900">双账号独立数据库已开启</p>
+            </div>
+            <span class="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">自动保存</span>
+          </div>
+          <p class="text-[11px] text-emerald-800/80 leading-relaxed">
+            支持导出全量备份（同时包含老公与老婆两人的全部照片和纪念日）：
+          </p>
+          <div class="grid grid-cols-2 gap-2 pt-1">
+            <button type="button" onclick="exportFullBackup()" class="py-2 rounded-xl bg-emerald-600 text-white text-xs font-bold shadow-xs active:scale-95 transition">
+              <i class="fa-solid fa-download mr-1"></i>导出双人备份
+            </button>
+            <button type="button" onclick="document.getElementById('backup-file-input').click()" class="py-2 rounded-xl bg-white border border-emerald-300 text-emerald-800 text-xs font-bold active:scale-95 transition">
+              <i class="fa-solid fa-upload mr-1"></i>恢复备份文件
+            </button>
+          </div>
+        </div>
+
+        <!-- 密码锁配置 -->
+        <div class="bg-white p-4 rounded-2xl border border-amber-900/10 space-y-3">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-extrabold text-[#4a2e18]">🔐 双人秘密口令锁</p>
+              <p class="text-[11px] text-[#8c6239]">口令 = 专属前缀 + 在一起天数（每日自动变）</p>
+            </div>
+            <input id="pref-lock-toggle" type="checkbox" checked onchange="toggleLockEnabled(this.checked)" class="w-5 h-5 accent-[#8b5a2b] rounded" />
+          </div>
+          <div class="flex items-center space-x-2 pt-1">
+            <input id="pref-lock-prefix" type="text" maxlength="12" autocapitalize="none" placeholder="自定义专属前缀" class="flex-1 px-3 py-2 bg-[#fdf6eb] border border-amber-900/15 rounded-xl text-xs text-[#4a2e18] font-bold focus:outline-none" />
+            <button type="button" onclick="saveLockPrefix()" class="px-3.5 py-2 rounded-xl bg-[#8b5a2b] text-amber-50 text-xs font-bold shrink-0">保存前缀</button>
+          </div>
+          <p id="pref-current-pwd-preview" class="text-[11px] text-[#8b5a2b] font-bold">
+            今日生效口令：love355
+          </p>
+        </div>
+
+        <div class="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-amber-900/10">
+          <div>
+            <p class="text-sm font-bold text-[#4a2e18]">⏱️ 时分秒实时跳动</p>
+            <p class="text-[11px] text-[#8c6239]">在主屏幕显示每秒实时变化的时分秒</p>
+          </div>
+          <input id="pref-hms-toggle" type="checkbox" onchange="toggleLiveHms(this.checked)" class="w-5 h-5 accent-[#8b5a2b] rounded" />
+        </div>
+
+        <div class="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-amber-900/10">
+          <div>
+            <p class="text-sm font-bold text-[#4a2e18]">💗 点击屏幕飘爱心特效</p>
+            <p class="text-[11px] text-[#8c6239]">轻触屏幕任意位置绽放浪漫爱心</p>
+          </div>
+          <input id="pref-hearts-toggle" type="checkbox" checked onchange="toggleHeartEffect(this.checked)" class="w-5 h-5 accent-[#8b5a2b] rounded" />
+        </div>
+
+        <div class="flex items-center justify-between bg-white p-3.5 rounded-2xl border border-amber-900/10">
+          <div>
+            <p class="text-sm font-bold text-[#4a2e18]">👑 自动标记 100/365 纪念日</p>
+            <p class="text-[11px] text-[#8c6239]">自动计算距离下一个百天或周年还有几天</p>
+          </div>
+          <input id="pref-milestone-toggle" type="checkbox" checked onchange="toggleMilestoneBadge(this.checked)" class="w-5 h-5 accent-[#8b5a2b] rounded" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 7. 自定义顶部文字弹窗 ==================== -->
+  <div id="top-text-modal" onclick="event.stopPropagation()" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
+    <div class="absolute inset-0 bg-[#3e2723]/60 backdrop-blur-xs" onclick="closeCustomTopTextModal()"></div>
+    <div class="relative bg-[#fffaf0] border-2 border-amber-200 text-[#5c3a21] rounded-3xl p-5 max-w-sm w-full shadow-2xl z-10 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="font-extrabold text-base text-[#4a2e18]">🧸 自定义顶部浪漫标题</h3>
+        <button type="button" onclick="closeCustomTopTextModal()" class="text-xs font-bold text-[#8c6239]">取消</button>
+      </div>
+      <input id="top-text-input" type="text" maxlength="20" placeholder="输入顶部展示的浪漫短句..." class="w-full px-4 py-3 bg-white border border-amber-900/15 rounded-2xl text-sm text-[#4a2e18] font-bold focus:outline-none" />
+      <button type="button" onclick="saveCustomTopText()" class="w-full py-3 bg-[#8b5a2b] text-amber-50 rounded-2xl text-sm font-extrabold shadow">保存标题</button>
+    </div>
+  </div>
+
+  <!-- ==================== 8. 左侧分类抽屉 ==================== -->
+  <div id="category-drawer" onclick="event.stopPropagation()" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-[#3e2723]/55 backdrop-blur-xs" onclick="toggleDrawer(false)"></div>
+    <div class="relative w-72 max-w-[78vw] h-full bg-[#fffaf0] text-[#5c3a21] border-r-2 border-amber-200 shadow-2xl flex flex-col safe-header safe-bottom-bar">
+      <div class="px-5 pb-4 border-b border-amber-900/10 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="text-xl">🧸</span>
+          <h2 id="drawer-role-title" class="font-extrabold text-base text-[#4a2e18]">老公的倒数本</h2>
+        </div>
+        <button type="button" onclick="toggleDrawer(false)" class="px-3 py-1 rounded-full bg-amber-100 text-xs font-bold text-[#5c3a21]">关闭</button>
+      </div>
+
+      <div class="p-4 flex-1 overflow-y-auto space-y-2">
+        <button type="button" onclick="selectCategory('全部')" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-extrabold bg-amber-200/75 text-[#4a2e18]">
+          <span><i class="fa-solid fa-layer-group w-6 text-[#8b5a2b]"></i>全部事件</span>
+          <span id="count-all" class="text-xs bg-white/80 text-[#5c3a21] px-2.5 py-0.5 rounded-full font-bold">0</span>
+        </button>
+        <button type="button" onclick="selectCategory('纪念日')" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-[#5c3a21] hover:bg-amber-100/60">
+          <span><i class="fa-solid fa-heart w-6 text-rose-400"></i>恋爱纪念</span>
+          <span id="count-love" class="text-xs text-[#8c6239]">0</span>
+        </button>
+        <button type="button" onclick="selectCategory('生活')" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-[#5c3a21] hover:bg-amber-100/60">
+          <span><i class="fa-solid fa-mug-hot w-6 text-amber-600"></i>生活日常</span>
+          <span id="count-life" class="text-xs text-[#8c6239]">0</span>
+        </button>
+        <button type="button" onclick="selectCategory('工作')" class="w-full flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold text-[#5c3a21] hover:bg-amber-100/60">
+          <span><i class="fa-solid fa-star w-6 text-amber-500"></i>重要日程</span>
+          <span id="count-work" class="text-xs text-[#8c6239]">0</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 9. 新增 / 编辑倒数日弹窗 ==================== -->
+  <div id="editor-modal" onclick="event.stopPropagation()" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="absolute inset-0 bg-[#3e2723]/55 backdrop-blur-xs" onclick="closeEditorModal()"></div>
+    <div class="relative w-full max-w-md bg-[#fffaf0] text-[#5c3a21] border-t-2 border-amber-200 rounded-t-[32px] sm:rounded-3xl shadow-2xl overflow-hidden safe-bottom-bar z-10">
+      <div class="px-5 py-4 border-b border-amber-900/10 flex items-center justify-between">
+        <button type="button" onclick="closeEditorModal()" class="text-sm text-[#8c6239] font-bold">返回</button>
+        <h3 id="editor-modal-title" class="font-extrabold text-base text-[#4a2e18]">🧸 编辑事件</h3>
+        <button type="button" onclick="saveEvent()" class="text-xs font-extrabold bg-[#8b5a2b] text-amber-50 px-4 py-1.5 rounded-full shadow">保存</button>
       </div>
 
       <div class="p-5 space-y-4">
         <input type="hidden" id="edit-id" />
 
         <div>
-          <label class="block text-xs font-bold text-white/60 mb-1.5">事件名称</label>
-          <input id="edit-title" type="text" placeholder="例如：和老婆在一起、生日、跨年" class="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-sm text-white placeholder-white/40 font-medium focus:outline-none focus:border-white/40 transition" />
+          <label class="block text-xs font-extrabold text-[#8c6239] mb-1.5">事件名称</label>
+          <input id="edit-title" type="text" placeholder="例如：和老婆在一起、一起去旅行" class="w-full px-4 py-3 bg-white border border-amber-900/15 rounded-2xl text-sm text-[#4a2e18] font-bold focus:outline-none" />
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-white/60 mb-1.5">目标日期</label>
-          <input id="edit-date" type="date" class="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-sm text-white font-medium focus:outline-none focus:border-white/40 transition" />
+          <label class="block text-xs font-extrabold text-[#8c6239] mb-1.5">目标日期</label>
+          <input id="edit-date" type="date" class="w-full px-4 py-3 bg-white border border-amber-900/15 rounded-2xl text-sm text-[#4a2e18] font-bold focus:outline-none" />
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-white/60 mb-1.5">倒数本分类</label>
+          <label class="block text-xs font-extrabold text-[#8c6239] mb-1.5">所属分类</label>
           <div class="grid grid-cols-3 gap-2.5">
-            <button type="button" onclick="setEditorCategory('纪念日')" class="cat-radio py-2.5 rounded-2xl text-xs font-semibold border border-white/15 text-white/75" data-val="纪念日">纪念日</button>
-            <button type="button" onclick="setEditorCategory('生活')" class="cat-radio py-2.5 rounded-2xl text-xs font-semibold border border-white/15 text-white/75" data-val="生活">生活</button>
-            <button type="button" onclick="setEditorCategory('工作')" class="cat-radio py-2.5 rounded-2xl text-xs font-semibold border border-white/15 text-white/75" data-val="工作">工作</button>
+            <button type="button" onclick="setEditorCategory('纪念日')" class="cat-radio py-2.5 rounded-2xl text-xs font-bold border border-amber-900/15 text-[#8c6239]" data-val="纪念日">💗 纪念日</button>
+            <button type="button" onclick="setEditorCategory('生活')" class="cat-radio py-2.5 rounded-2xl text-xs font-bold border border-amber-900/15 text-[#8c6239]" data-val="生活">🍯 生活</button>
+            <button type="button" onclick="setEditorCategory('工作')" class="cat-radio py-2.5 rounded-2xl text-xs font-bold border border-amber-900/15 text-[#8c6239]" data-val="工作">⭐ 日程</button>
           </div>
         </div>
 
-        <div class="flex items-center justify-between pt-2">
-          <span class="text-sm font-semibold text-white/90">置顶显示在锁屏主视觉</span>
-          <input id="edit-pinned" type="checkbox" class="w-5 h-5 accent-white rounded" />
-        </div>
-
-        <button id="delete-event-btn" onclick="deleteCurrentEditingEvent()" class="hidden w-full py-3 mt-2 rounded-2xl bg-red-500/20 text-red-300 text-sm font-bold">
-          删除此倒数日
+        <button type="button" id="delete-event-btn" onclick="deleteCurrentEditingEvent()" class="hidden w-full py-3 mt-2 rounded-2xl bg-rose-100 text-rose-600 border border-rose-200 text-sm font-extrabold active:scale-98 transition">
+          🗑️ 删除此纪念日
         </button>
       </div>
     </div>
   </div>
 
-  <!-- ==================== 6. 存为图片预览弹窗 ==================== -->
-  <div id="image-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
-    <div class="absolute inset-0 bg-black/80 backdrop-blur-xs" onclick="closeImageModal()"></div>
-    <div class="relative bg-slate-900 border border-white/15 rounded-3xl p-4 max-w-xs w-full text-center shadow-2xl z-10 text-white">
-      <h3 class="font-bold text-sm mb-1">专属海报已生成</h3>
-      <p class="text-xs text-amber-300 mb-3 font-semibold">👇 长按下方图片即可“保存到相册”</p>
-      <img id="generated-img" src="" alt="倒数日卡片" class="w-full rounded-2xl shadow-lg border border-white/15 mx-auto" />
-      <button onclick="closeImageModal()" class="mt-4 w-full py-2.5 bg-white/15 text-white rounded-2xl text-sm font-semibold">关闭</button>
-    </div>
-  </div>
-
-  <!-- ==================== 7. iOS 添加到主屏幕指引弹窗 ==================== -->
-  <div id="install-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
-    <div class="absolute inset-0 bg-black/70 backdrop-blur-xs" onclick="closeInstallModal()"></div>
-    <div class="relative bg-slate-900 border border-white/15 text-white rounded-3xl p-6 max-w-sm w-full shadow-2xl z-10 space-y-3.5">
-      <div class="flex items-center space-x-2.5">
-        <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
-          <i class="fa-brands fa-apple text-xl"></i>
-        </div>
-        <h3 class="font-bold text-base">去掉浏览器框，变身全屏 App</h3>
+  <!-- ==================== 10. 纯净萌系海报预览弹窗 ==================== -->
+  <div id="image-modal" onclick="event.stopPropagation()" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
+    <div class="absolute inset-0 bg-[#3e2723]/75 backdrop-blur-xs" onclick="closeImageModal()"></div>
+    <div class="relative bg-[#fffaf0] border-2 border-amber-200 rounded-[30px] p-4 max-w-xs w-full text-center shadow-2xl z-10 text-[#5c3a21]">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-extrabold text-[#4a2e18]">🧸 专属萌系年度报告海报</span>
+        <button type="button" onclick="closeImageModal()" class="text-xs font-bold text-[#8c6239] px-2 py-1">关闭</button>
       </div>
-      <p class="text-xs text-white/75 leading-relaxed">
-        把在线网址添加到 iPhone 主屏幕后，打开时顶部和底部的浏览器地址栏会完全消失，就像原生 App 一样纯净展示壁纸：
-      </p>
-      <ol class="text-xs text-white/90 space-y-2.5 bg-white/5 p-3.5 rounded-2xl border border-white/10">
-        <li><strong>第 1 步：</strong>用 iPhone 自带的 <strong>Safari 浏览器</strong>打开本页面网址。</li>
-        <li><strong>第 2 步：</strong>点击底部中间的 <strong>分享图标 <i class="fa-solid fa-arrow-up-from-bracket text-sky-400"></i></strong>，选择 <strong>“添加到主屏幕”</strong>。</li>
-      </ol>
-      <button onclick="closeInstallModal()" class="w-full py-3 bg-white text-slate-900 rounded-2xl text-sm font-bold">我知道了</button>
-    </div>
-  </div>
-
-  <!-- ==================== 8. 备份弹窗 ==================== -->
-  <div id="backup-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
-    <div class="absolute inset-0 bg-black/70 backdrop-blur-xs" onclick="closeBackupModal()"></div>
-    <div class="relative bg-slate-900 border border-white/15 text-white rounded-3xl p-5 max-w-sm w-full shadow-2xl z-10 space-y-4">
-      <h3 class="font-bold text-base">数据备份与恢复</h3>
-      <p class="text-xs text-white/60">所有倒数日均保存在手机本地。换机前可复制备份码保存。</p>
-      <textarea id="backup-textarea" rows="3" class="w-full p-3 bg-white/10 rounded-2xl text-xs text-white font-mono focus:outline-none" placeholder="点击下方导出生成备份代码，或粘贴代码点击恢复..."></textarea>
-      <div class="grid grid-cols-2 gap-2.5">
-        <button onclick="exportBackup()" class="py-2.5 bg-white text-slate-900 rounded-2xl text-xs font-bold">复制备份码</button>
-        <button onclick="importBackup()" class="py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-bold">从代码恢复</button>
-      </div>
-      <button onclick="closeBackupModal()" class="w-full py-2.5 bg-white/10 text-white/80 rounded-2xl text-xs font-semibold">关闭</button>
+      <p class="text-xs text-[#8b5a2b] mb-3 font-bold">👇 长按下方图片即可“保存到相册”</p>
+      <img id="generated-img" src="" alt="倒数日海报" class="w-full rounded-2xl shadow-lg border-2 border-amber-200 mx-auto" />
+      <button type="button" onclick="closeImageModal()" class="mt-4 w-full py-2.5 bg-[#8b5a2b] text-amber-50 rounded-2xl text-xs font-extrabold shadow">完成并返回</button>
     </div>
   </div>
 
   <!-- 轻提示 Toast -->
-  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xl border border-white/15 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-200 z-50 whitespace-nowrap">
+  <div id="toast" class="fixed top-24 left-1/2 -translate-x-1/2 bg-[#4a2e18]/92 backdrop-blur-xl border border-amber-200/40 text-amber-50 text-xs font-bold px-4 py-2 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-200 z-50 whitespace-nowrap">
     提示信息
   </div>
 
   <script>
-    // ==================== 初始默认数据 ====================
-    const DEFAULT_EVENTS = [
-      { id: '1', title: '和老婆在一起', date: '2025-12-04', category: '纪念日', pinned: true },
-      { id: '2', title: 'New Year', date: '2027-01-01', category: '生活', pinned: false },
-      { id: '3', title: '星期六', date: getNextSaturday(), category: '生活', pinned: false }
-    ];
+    // ==================== IndexedDB 大容量双账号隔离存储引擎 ====================
+    const IDB_NAME = 'DaysMatterHoneyDualDB';
+    const IDB_STORE = 'dual_account_store';
+    const IDB_VERSION = 1;
 
+    function openAppDB() {
+      return new Promise((resolve, reject) => {
+        if (!window.indexedDB) {
+          reject(new Error('IndexedDB not supported'));
+          return;
+        }
+        const request = indexedDB.open(IDB_NAME, IDB_VERSION);
+        request.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(IDB_STORE)) {
+            db.createObjectStore(IDB_STORE);
+          }
+        };
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function dbPut(key, val) {
+      try {
+        const db = await openAppDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(IDB_STORE, 'readwrite');
+          tx.objectStore(IDB_STORE).put(val, key);
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (e) {
+        return false;
+      }
+    }
+
+    async function dbGet(key) {
+      try {
+        const db = await openAppDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(IDB_STORE, 'readonly');
+          const req = tx.objectStore(IDB_STORE).get(key);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      } catch (e) {
+        return undefined;
+      }
+    }
+
+    // ==================== 基础工具函数 ====================
+    function formatDateInput(dateObj) {
+      const y = dateObj.getFullYear();
+      const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+      const d = String(dateObj.getDate()).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+
+    function calculateDayInfo(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const target = new Date(y, m - 1, d);
+      target.setHours(0, 0, 0, 0);
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const diffDays = Math.round((target.getTime() - today.getTime()) / 86400000);
+      const isPast = diffDays < 0;
+      const days = Math.abs(diffDays);
+      const weekDays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const formattedDate = `${dateStr} ${weekDays[target.getDay()]}`;
+
+      return { days, isPast, isToday: diffDays === 0, formattedDate };
+    }
+
+    function formatEventDisplayTitle(rawTitle, info) {
+      const clean = rawTitle.replace(/\s*(还有|已经)$/, '');
+      if (info.isToday) return `${clean} 就是今天`;
+      return info.isPast ? `${clean} 已经` : `${clean} 还有`;
+    }
+
+    function getMilestoneLabel(days, isPast) {
+      if (!isPast) {
+        return days === 0 ? '就是今天啦！' : `距离期待日还有 ${days} 天`;
+      }
+      const milestones = [100, 200, 300, 365, 500, 520, 730, 1000, 1095, 1314, 1500, 2000];
+      const names = { 365: '一周年', 520: '520天', 730: '两周年', 1095: '三周年', 1314: '1314天' };
+      const next = milestones.find(m => m > days) || (Math.floor(days / 100) + 1) * 100;
+      const diff = next - days;
+      const tag = names[next] || `${next}天`;
+      return `距${tag}纪念还有 ${diff} 天`;
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.remove('opacity-0');
+      clearTimeout(t._timer);
+      t._timer = setTimeout(() => t.classList.add('opacity-0'), 2200);
+    }
+
+    function generateAppIcon() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 180;
+        c.height = 180;
+        const ctx = c.getContext('2d');
+        const g = ctx.createLinearGradient(0, 0, 180, 180);
+        g.addColorStop(0, '#8b5a2b');
+        g.addColorStop(1, '#5c3a21');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 180, 180);
+        ctx.fillStyle = '#fde68a';
+        ctx.font = 'bold 76px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🧸', 90, 96);
+        document.getElementById('apple-touch-icon').href = c.toDataURL('image/png');
+      } catch (e) {}
+    }
+
+    // ==================== 双账号独立数据结构与默认模板 ====================
+    function createDefaultAccountData(role) {
+      const isWife = role === 'wife';
+      return {
+        events: [
+          {
+            id: 'together_main',
+            title: isWife ? '和老公在一起' : '和老婆在一起',
+            date: '2025-12-04',
+            category: '纪念日',
+            pinned: true
+          },
+          {
+            id: 'new_year',
+            title: 'New Year 跨年',
+            date: '2027-01-01',
+            category: '生活',
+            pinned: false
+          }
+        ],
+        slides: {
+          photos: [],
+          currentIndex: 0,
+          activeLayer: 'a',
+          autoPlay: true,
+          intervalSec: 7,
+          blurPx: 0,
+          scrimOpacity: 22,
+          isLightBg: false
+        },
+        prefs: {
+          topText: isWife ? '老婆的浪漫小窝' : '老公的浪漫小窝',
+          showLiveHms: false,
+          enableHearts: true,
+          showMilestones: true
+        }
+      };
+    }
+
+    // 全局共享的密码锁配置（两人共用同一套秘密口令）
+    let sharedAuth = {
+      lockEnabled: true,
+      lockPrefix: 'love',
+      togetherStartDate: '2025-12-04'
+    };
+
+    // 当前活跃账号标识 ('husband' | 'wife')
+    let currentRole = 'husband';
+
+    // 当前活跃账号的独立内存状态（与另一账号完全物理隔离）
     let events = [];
+    let slideState = createDefaultAccountData('husband').slides;
+    let prefs = createDefaultAccountData('husband').prefs;
+
     let currentCategory = '全部';
     let currentDetailId = null;
     let editorCategory = '纪念日';
     let purePhotoMode = false;
-    let detailCardStyle = 'frameless'; // 'frameless' | 'glass' | 'classic'
+    let detailCardStyle = 'glass';
 
-    // 主题与自定义背景状态
-    const THEMES = ['theme-wood', 'theme-aurora', 'theme-sunset', 'theme-sakura', 'theme-nordic'];
-    const THEME_NAMES = ['深海静谧', '极光深邃', '晚霞暮色', '樱花粉黛', '北欧紫霞'];
-    let bgSettings = {
-      themeIndex: 0,
-      customDataUrl: null,
-      scrimOpacity: 20,
-      posY: 35
-    };
+    let isSessionUnlocked = false;
+    let isLockPwdVisible = false;
+    let slideTimer = null;
+    let hmsTimer = null;
 
-    function getNextSaturday() {
-      const now = new Date();
-      const day = now.getDay();
-      const diff = (6 - day + 7) % 7 || 7;
-      const sat = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
-      return formatDateInput(sat);
-    }
-
-    function formatDateInput(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    }
-
-    // 智能拼接事件标题，彻底避免“和老婆在一起已经 已经”重复
-    function formatEventDisplayTitle(rawTitle, info) {
-      const cleanTitle = rawTitle.trim();
-      if (info.isToday) {
-        return cleanTitle.endsWith('今天') ? cleanTitle : `${cleanTitle} · 就是今天`;
-      }
-      if (cleanTitle.endsWith('已经') || cleanTitle.endsWith('还有')) {
-        return cleanTitle;
-      }
-      return `${cleanTitle} ${info.statusText}`;
-    }
-
-    // ==================== 核心日期计算 ====================
-    function calculateDayInfo(dateStr) {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      const target = new Date(y, m - 1, d);
-      const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-      const diffTime = target.getTime() - today.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-
-      const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
-      const weekdayStr = weekdays[target.getDay()];
-
-      return {
-        days: Math.abs(diffDays),
-        isPast: diffDays < 0,
-        isToday: diffDays === 0,
-        statusText: diffDays > 0 ? '还有' : (diffDays < 0 ? '已经' : '就是今天'),
-        formattedDate: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')} ${weekdayStr}`
-      };
-    }
-
-    // ==================== 初始化与本地存储 ====================
-    function initApp() {
+    // ==================== 异步初始化与账号加载 ====================
+    async function initApp() {
       generateAppIcon();
-      try {
-        const saved = localStorage.getItem('days_matter_events_v1');
-        events = saved ? JSON.parse(saved) : [...DEFAULT_EVENTS];
 
-        const savedBg = localStorage.getItem('days_matter_bg_v3');
-        if (savedBg) {
-          bgSettings = { ...bgSettings, ...JSON.parse(savedBg) };
-        }
-      } catch (e) {
-        events = [...DEFAULT_EVENTS];
-      }
-      applyBackgroundAppearance();
-      renderAll();
-    }
-
-    function saveToStorage() {
-      try {
-        localStorage.setItem('days_matter_events_v1', JSON.stringify(events));
-      } catch (e) {
-        showToast('本地存储空间不足');
-      }
-    }
-
-    function saveBgSettings() {
-      try {
-        localStorage.setItem('days_matter_bg_v3', JSON.stringify(bgSettings));
-      } catch (e) {
-        showToast('图片过大无法保存，请选择较小图片');
-      }
-    }
-
-    // ==================== 纯享壁纸模式切换 ====================
-    function togglePurePhotoMode() {
-      purePhotoMode = !purePhotoMode;
-      const hero = document.getElementById('home-hero-section');
-      const list = document.getElementById('events-list');
-      const nav = document.getElementById('home-bottom-nav');
-      const eyeBtn = document.getElementById('pure-mode-btn');
-
-      if (purePhotoMode) {
-        hero.classList.add('opacity-0', 'pointer-events-none');
-        list.classList.add('opacity-0', 'pointer-events-none');
-        nav.classList.add('opacity-0', 'pointer-events-none');
-        eyeBtn.innerHTML = '<i class="fa-regular fa-eye-slash text-amber-300"></i>';
-        showToast('已进入纯享壁纸模式，再次点击眼睛恢复');
+      // 1. 读取全局共享的口令锁配置
+      const savedAuth = await dbGet('shared_auth');
+      if (savedAuth && typeof savedAuth === 'object') {
+        sharedAuth = { ...sharedAuth, ...savedAuth };
       } else {
-        hero.classList.remove('opacity-0', 'pointer-events-none');
-        list.classList.remove('opacity-0', 'pointer-events-none');
-        nav.classList.remove('opacity-0', 'pointer-events-none');
-        eyeBtn.innerHTML = '<i class="fa-regular fa-eye"></i>';
+        try {
+          const lsAuth = localStorage.getItem('days_matter_shared_auth_v7');
+          if (lsAuth) sharedAuth = { ...sharedAuth, ...JSON.parse(lsAuth) };
+        } catch (e) {}
+      }
+
+      // 2. 读取上次使用的角色（若未开启密码锁则直接进入上次角色）
+      const lastRole = await dbGet('last_active_role') || localStorage.getItem('days_matter_last_role_v7') || 'husband';
+      currentRole = (lastRole === 'wife') ? 'wife' : 'husband';
+
+      await loadAccountData(currentRole);
+
+      // 3. 根据是否开启密码锁决定显示锁屏页（输入密码 -> 选老公/老婆）还是直接进入
+      if (!sharedAuth.lockEnabled) {
+        isSessionUnlocked = true;
+        document.getElementById('lock-screen-view').classList.add('hidden');
+      } else {
+        showLockPasswordStep();
       }
     }
 
-    // ==================== 自定义图片上传与智能压缩 ====================
+    // 加载指定账号的完全隔离本地数据
+    async function loadAccountData(role) {
+      currentRole = role;
+      const storageKey = `account_space_${role}`;
+      const defaults = createDefaultAccountData(role);
+
+      let loaded = await dbGet(storageKey);
+      if (!loaded || typeof loaded !== 'object') {
+        try {
+          const lsRaw = localStorage.getItem(`days_matter_${storageKey}_v7`);
+          if (lsRaw) loaded = JSON.parse(lsRaw);
+        } catch (e) {}
+      }
+
+      if (loaded && typeof loaded === 'object') {
+        events = Array.isArray(loaded.events) ? loaded.events : defaults.events;
+        slideState = { ...defaults.slides, ...(loaded.slides || {}) };
+        prefs = { ...defaults.prefs, ...(loaded.prefs || {}) };
+      } else {
+        events = defaults.events;
+        slideState = defaults.slides;
+        prefs = defaults.prefs;
+      }
+
+      // 重置当前会话的视图状态
+      currentCategory = '全部';
+      currentDetailId = null;
+      document.getElementById('detail-view').classList.add('hidden-view');
+      document.getElementById('home-view').classList.remove('hidden-view');
+
+      updateRoleBadgesUI();
+      document.getElementById('custom-top-text').textContent = prefs.topText;
+      applySlideVisuals(true);
+      renderSlideDots();
+      startSlideTimer();
+      startLiveHmsTimer();
+      renderAll();
+
+      // 持久化记录上次使用的角色
+      await dbPut('last_active_role', role);
+      try { localStorage.setItem('days_matter_last_role_v7', role); } catch (e) {}
+    }
+
+    // 保存当前账号的独立数据（绝不污染另一个账号）
+    async function saveCurrentAccountState() {
+      const storageKey = `account_space_${currentRole}`;
+      const snapshot = {
+        events,
+        slides: slideState,
+        prefs
+      };
+
+      await dbPut(storageKey, snapshot);
+      try {
+        localStorage.setItem(`days_matter_${storageKey}_v7`, JSON.stringify(snapshot));
+      } catch (e) {}
+    }
+
+    async function saveSharedAuthState() {
+      await dbPut('shared_auth', sharedAuth);
+      try {
+        localStorage.setItem('days_matter_shared_auth_v7', JSON.stringify(sharedAuth));
+      } catch (e) {}
+    }
+
+    function updateRoleBadgesUI() {
+      const isWife = currentRole === 'wife';
+      document.getElementById('header-role-emoji').textContent = isWife ? '👩🏻' : '👨🏻';
+      document.getElementById('header-role-name').textContent = isWife ? '老婆' : '老公';
+      document.getElementById('drawer-role-title').textContent = isWife ? '老婆的倒数本' : '老公的倒数本';
+      document.getElementById('bg-modal-title').textContent = isWife ? '🧸 老婆的专属相册轮播' : '🧸 老公的专属相册轮播';
+      document.getElementById('pref-modal-title').textContent = isWife ? '🧸 老婆的小屋设置' : '🧸 老公的小屋设置';
+      document.getElementById('pref-role-label').textContent = isWife ? '👩🏻 老婆独立账号' : '👨🏻 老公独立账号';
+    }
+
+    // ==================== 导出与恢复双账号全量备份 (.json) ====================
+    async function exportFullBackup() {
+      await saveCurrentAccountState();
+      const husbandData = (await dbGet('account_space_husband')) || createDefaultAccountData('husband');
+      const wifeData = (await dbGet('account_space_wife')) || createDefaultAccountData('wife');
+
+      const payload = {
+        app: 'DaysMatterHoneyDual',
+        exportedAt: new Date().toISOString(),
+        sharedAuth,
+        accounts: {
+          husband: husbandData,
+          wife: wifeData
+        }
+      };
+      const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `双人专属倒数日全量备份_${formatDateInput(new Date())}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('已生成双人全量备份文件，请保存到“文件”中');
+    }
+
+    function handleImportBackup(e) {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (data.sharedAuth) {
+            sharedAuth = { ...sharedAuth, ...data.sharedAuth };
+            await saveSharedAuthState();
+          }
+          if (data.accounts) {
+            if (data.accounts.husband) {
+              await dbPut('account_space_husband', data.accounts.husband);
+              try { localStorage.setItem('days_matter_account_space_husband_v7', JSON.stringify(data.accounts.husband)); } catch (err) {}
+            }
+            if (data.accounts.wife) {
+              await dbPut('account_space_wife', data.accounts.wife);
+              try { localStorage.setItem('days_matter_account_space_wife_v7', JSON.stringify(data.accounts.wife)); } catch (err) {}
+            }
+          }
+          await loadAccountData(currentRole);
+          openPreferencesModal();
+          showToast('🎉 双人独立备份恢复成功！');
+        } catch (err) {
+          showToast('备份文件格式不正确');
+        }
+      };
+      reader.readAsText(file);
+      e.target.value = '';
+    }
+
+    // ==================== 密码校验 + 老公/老婆身份选择逻辑 ====================
+    function getExpectedDynamicPassword() {
+      const days = calculateDayInfo(sharedAuth.togetherStartDate || '2025-12-04').days;
+      const prefix = (sharedAuth.lockPrefix || 'love').trim();
+      return `${prefix}${days}`;
+    }
+
+    function showLockPasswordStep() {
+      const lockView = document.getElementById('lock-screen-view');
+      lockView.classList.remove('hidden');
+      document.getElementById('lock-step-password').classList.remove('hidden');
+      document.getElementById('lock-step-role').classList.add('hidden');
+      document.getElementById('lock-hint-text').textContent = '只有我们两个人知道的专属暗号 🍯';
+    }
+
+    function toggleLockPwdVisibility() {
+      isLockPwdVisible = !isLockPwdVisible;
+      const inputEl = document.getElementById('lock-password-input');
+      const eyeBtn = document.getElementById('lock-eye-btn');
+      inputEl.type = isLockPwdVisible ? 'text' : 'password';
+      eyeBtn.innerHTML = isLockPwdVisible
+        ? '<i class="fa-regular fa-eye-slash text-amber-800"></i>'
+        : '<i class="fa-regular fa-eye"></i>';
+    }
+
+    function clearLockError() {
+      const errBox = document.getElementById('lock-error-box');
+      const inputEl = document.getElementById('lock-password-input');
+      errBox.classList.add('hidden');
+      inputEl.classList.remove('border-rose-400', 'bg-rose-50/40');
+    }
+
+    function showLockError(message) {
+      const errBox = document.getElementById('lock-error-box');
+      const errMsg = document.getElementById('lock-error-msg');
+      const cardEl = document.getElementById('lock-card');
+      const inputEl = document.getElementById('lock-password-input');
+
+      errMsg.textContent = message;
+      errBox.classList.remove('hidden');
+      inputEl.classList.add('border-rose-400', 'bg-rose-50/40');
+
+      cardEl.classList.remove('animate-shake');
+      void cardEl.offsetWidth;
+      cardEl.classList.add('animate-shake');
+    }
+
+    function verifyLockPassword() {
+      const inputEl = document.getElementById('lock-password-input');
+      const rawVal = inputEl.value.trim();
+      const expected = getExpectedDynamicPassword();
+
+      if (!rawVal) {
+        showLockError('暗号不能为空哦，请输入我们的专属口令~');
+        return;
+      }
+
+      if (rawVal.toLowerCase() === expected.toLowerCase()) {
+        isSessionUnlocked = true;
+        clearLockError();
+        inputEl.value = '';
+        // 密码验证通过后，平滑切换到“你是老公还是老婆”选择界面
+        document.getElementById('lock-step-password').classList.add('hidden');
+        document.getElementById('lock-step-role').classList.remove('hidden');
+      } else {
+        showLockError('暗号不对哦，再仔细想想我们的秘密~');
+      }
+    }
+
+    async function selectUserAccount(role) {
+      await loadAccountData(role);
+      const lockView = document.getElementById('lock-screen-view');
+      lockView.style.opacity = '0';
+      setTimeout(() => {
+        lockView.classList.add('hidden');
+        lockView.style.opacity = '1';
+      }, 400);
+      showToast(role === 'wife' ? '👩🏻 已进入老婆独立空间' : '👨🏻 已进入老公独立空间');
+    }
+
+    // 主页内快速切换身份弹窗
+    function openRoleSwitchModal() {
+      const isWife = currentRole === 'wife';
+      const cardH = document.getElementById('switch-card-husband');
+      const cardW = document.getElementById('switch-card-wife');
+      const tagH = document.getElementById('switch-tag-husband');
+      const tagW = document.getElementById('switch-tag-wife');
+
+      if (!isWife) {
+        cardH.className = 'p-3.5 rounded-2xl border-2 border-sky-500 bg-sky-100/80 flex flex-col items-center active:scale-95 transition shadow-xs';
+        tagH.textContent = '✓ 当前使用中';
+        cardW.className = 'p-3.5 rounded-2xl border-2 border-rose-200 bg-rose-50/70 flex flex-col items-center active:scale-95 transition';
+        tagW.textContent = '点击切换空间';
+      } else {
+        cardW.className = 'p-3.5 rounded-2xl border-2 border-rose-500 bg-rose-100/80 flex flex-col items-center active:scale-95 transition shadow-xs';
+        tagW.textContent = '✓ 当前使用中';
+        cardH.className = 'p-3.5 rounded-2xl border-2 border-sky-200 bg-sky-50/70 flex flex-col items-center active:scale-95 transition';
+        tagH.textContent = '点击切换空间';
+      }
+
+      document.getElementById('role-switch-modal').classList.remove('hidden');
+    }
+
+    function closeRoleSwitchModal() {
+      document.getElementById('role-switch-modal').classList.add('hidden');
+    }
+
+    async function switchAccountFromModal(targetRole) {
+      closeRoleSwitchModal();
+      if (targetRole === currentRole) {
+        showToast(targetRole === 'wife' ? '当前已是老婆空间' : '当前已是老公空间');
+        return;
+      }
+      // 先确保当前账号数据完整落盘，再加载目标账号独立数据
+      await saveCurrentAccountState();
+      await loadAccountData(targetRole);
+      showToast(targetRole === 'wife' ? '👩🏻 已切换至老婆独立空间' : '👨🏻 已切换至老公独立空间');
+    }
+
+    // ==================== 多图上传与自动居中裁切铺满 ====================
     function triggerPhotoUpload() {
       document.getElementById('bg-file-input').click();
     }
 
-    function handleBgFileSelect(event) {
-      const file = event.target.files[0];
-      if (!file) return;
+    function handleMultiBgUpload(event) {
+      const files = Array.from(event.target.files || []);
+      if (!files.length) return;
 
-      showToast('正在优化壁纸画质...');
-      const reader = new FileReader();
-      reader.onload = function(e) {
-        const img = new Image();
-        img.onload = function() {
-          const maxDim = 1440;
-          let w = img.width;
-          let h = img.height;
-          if (w > maxDim || h > maxDim) {
-            if (w > h) {
-              h = Math.round((h * maxDim) / w);
-              w = maxDim;
+      const remainingSlots = 8 - slideState.photos.length;
+      if (remainingSlots <= 0) {
+        showToast('最多支持 8 张轮播图片，请先删除旧图');
+        return;
+      }
+
+      const filesToProcess = files.slice(0, remainingSlots);
+      showToast(`正在导入到${currentRole === 'wife' ? '老婆' : '老公'}专属相册...`);
+
+      let processed = 0;
+      filesToProcess.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const img = new Image();
+          img.onload = async function() {
+            const targetW = 900;
+            const targetH = 1600;
+            const targetRatio = targetW / targetH;
+            const srcRatio = img.width / img.height;
+
+            let sx = 0, sy = 0, sWidth = img.width, sHeight = img.height;
+            if (srcRatio > targetRatio) {
+              sWidth = img.height * targetRatio;
+              sx = (img.width - sWidth) / 2;
             } else {
-              w = Math.round((w * maxDim) / h);
-              h = maxDim;
+              sHeight = img.width / targetRatio;
+              sy = (img.height - sHeight) * 0.35;
             }
-          }
 
-          const canvas = document.createElement('canvas');
-          canvas.width = w;
-          canvas.height = h;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, w, h);
+            const canvas = document.createElement('canvas');
+            canvas.width = targetW;
+            canvas.height = targetH;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, targetW, targetH);
 
-          bgSettings.customDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-          saveBgSettings();
-          applyBackgroundAppearance();
-          updateBgModalUI();
-          showToast('照片壁纸已设置！可拖动滑块微调位置');
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            slideState.photos.push(dataUrl);
+            processed++;
+
+            if (processed === filesToProcess.length) {
+              slideState.currentIndex = slideState.photos.length - 1;
+              await saveCurrentAccountState();
+              applySlideVisuals(true);
+              renderSlideDots();
+              updateBgModalUI();
+              startSlideTimer();
+              showToast(`已保存到${currentRole === 'wife' ? '老婆' : '老公'}空间（${processed}张）`);
+            }
+          };
+          img.src = e.target.result;
         };
-        img.src = e.target.result;
-      };
-      reader.readAsDataURL(file);
+        reader.readAsDataURL(file);
+      });
       event.target.value = '';
     }
 
-    function applyBackgroundAppearance() {
-      const bgLayer = document.getElementById('global-bg-layer');
-      const scrimLayer = document.getElementById('global-scrim-layer');
-      const opacity = (bgSettings.scrimOpacity ?? 20) / 100;
-      const posY = bgSettings.posY ?? 35;
+    function detectImageBrightness(dataUrl, callback) {
+      if (!dataUrl) {
+        callback(false);
+        return;
+      }
+      const img = new Image();
+      img.onload = function() {
+        const c = document.createElement('canvas');
+        c.width = 32;
+        c.height = 32;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0, 32, 32);
+        const data = ctx.getImageData(0, 0, 32, 32).data;
+        let totalLum = 0;
+        for (let i = 0; i < data.length; i += 4) {
+          totalLum += (0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+        }
+        callback((totalLum / (32 * 32)) > 155);
+      };
+      img.src = dataUrl;
+    }
 
-      bgLayer.classList.remove(...THEMES);
+    function applySlideVisuals(immediate = false) {
+      const layerA = document.getElementById('bg-slide-a');
+      const layerB = document.getElementById('bg-slide-b');
+      const scrim = document.getElementById('global-scrim-layer');
 
-      if (bgSettings.customDataUrl) {
-        bgLayer.style.backgroundImage = `url(${bgSettings.customDataUrl})`;
-        bgLayer.style.backgroundPosition = `50% ${posY}%`;
-        scrimLayer.style.background = `linear-gradient(180deg, rgba(0,0,0,${opacity + 0.12}) 0%, rgba(0,0,0,0.02) 45%, rgba(0,0,0,${opacity + 0.28}) 100%)`;
+      const blurStyle = slideState.blurPx > 0 ? `blur(${slideState.blurPx}px)` : 'none';
+      const nextLayer = slideState.activeLayer === 'a' ? layerB : layerA;
+      const currLayer = slideState.activeLayer === 'a' ? layerA : layerB;
+
+      const applyToLayer = (el, photoUrl, idx) => {
+        el.classList.remove('theme-0', 'theme-1', 'theme-2', 'theme-3', 'theme-4');
+        el.style.filter = blurStyle;
+        el.style.backgroundPosition = 'center center';
+        if (photoUrl) {
+          el.style.backgroundImage = `url(${photoUrl})`;
+        } else {
+          el.style.backgroundImage = '';
+          el.classList.add(`theme-${idx % 5}`);
+        }
+      };
+
+      const photoUrl = slideState.photos.length > 0
+        ? slideState.photos[slideState.currentIndex % slideState.photos.length]
+        : null;
+
+      if (immediate) {
+        applyToLayer(currLayer, photoUrl, slideState.currentIndex);
+        currLayer.style.opacity = '1';
+        nextLayer.style.opacity = '0';
       } else {
-        bgLayer.style.backgroundImage = '';
-        bgLayer.classList.add(THEMES[bgSettings.themeIndex]);
-        scrimLayer.style.background = `linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.35) 100%)`;
+        applyToLayer(nextLayer, photoUrl, slideState.currentIndex);
+        nextLayer.style.opacity = '1';
+        currLayer.style.opacity = '0';
+        slideState.activeLayer = slideState.activeLayer === 'a' ? 'b' : 'a';
+      }
+
+      detectImageBrightness(photoUrl, (isLight) => {
+        slideState.isLightBg = isLight;
+        const baseOpacity = slideState.scrimOpacity / 100;
+        const adaptiveTop = isLight ? Math.max(baseOpacity + 0.18, 0.36) : baseOpacity + 0.1;
+        const adaptiveBottom = isLight ? Math.max(baseOpacity + 0.32, 0.52) : baseOpacity + 0.28;
+
+        scrim.style.background = `linear-gradient(180deg, rgba(62,39,35,${adaptiveTop}) 0%, rgba(0,0,0,${baseOpacity * 0.35}) 45%, rgba(62,39,35,${adaptiveBottom}) 100%)`;
+
+        document.querySelectorAll('.adaptive-shadow-dark-bg, .adaptive-shadow-light-bg').forEach(el => {
+          el.classList.toggle('adaptive-shadow-light-bg', isLight);
+          el.classList.toggle('adaptive-shadow-dark-bg', !isLight);
+        });
+      });
+    }
+
+    function renderSlideDots() {
+      const dotsContainer = document.getElementById('slide-dots');
+      const total = slideState.photos.length > 0 ? slideState.photos.length : 5;
+      const activeIdx = slideState.currentIndex % total;
+
+      let html = '';
+      for (let i = 0; i < total; i++) {
+        const active = i === activeIdx;
+        html += `<button type="button" onclick="goToSlide(${i})" class="h-1.5 rounded-full transition-all duration-300 ${active ? 'w-4 bg-amber-200' : 'w-1.5 bg-amber-100/45'}" aria-label="第${i + 1}张"></button>`;
+      }
+      dotsContainer.innerHTML = html;
+    }
+
+    function goToSlide(idx) {
+      const total = slideState.photos.length > 0 ? slideState.photos.length : 5;
+      slideState.currentIndex = (idx + total) % total;
+      applySlideVisuals(false);
+      renderSlideDots();
+      startSlideTimer();
+    }
+
+    function nextSlide() {
+      goToSlide(slideState.currentIndex + 1);
+    }
+
+    function prevSlide() {
+      goToSlide(slideState.currentIndex - 1);
+    }
+
+    function startSlideTimer() {
+      if (slideTimer) clearInterval(slideTimer);
+      if (!slideState.autoPlay) return;
+      slideTimer = setInterval(() => {
+        const total = slideState.photos.length > 0 ? slideState.photos.length : 5;
+        if (total > 1) {
+          slideState.currentIndex = (slideState.currentIndex + 1) % total;
+          applySlideVisuals(false);
+          renderSlideDots();
+        }
+      }, slideState.intervalSec * 1000);
+    }
+
+    // ==================== 置顶焦点动态绑定与实时时钟 ====================
+    function getActiveHeroEvent() {
+      if (events.length === 0) return null;
+      return events.find(e => e.pinned) || events[0];
+    }
+
+    async function pinEventToHero(id) {
+      events = events.map(e => ({ ...e, pinned: e.id === id }));
+      await saveCurrentAccountState();
+      renderAll();
+      showToast('📌 已设为顶部主视觉纪念日');
+    }
+
+    function quickEditHeroMode() {
+      const item = getActiveHeroEvent();
+      if (item) openEditorModal(item.id);
+      else openEditorModal();
+    }
+
+    function startLiveHmsTimer() {
+      if (hmsTimer) clearInterval(hmsTimer);
+      const updateClock = () => {
+        const hmsBar = document.getElementById('live-hms-bar');
+        const detailHms = document.getElementById('detail-live-hms');
+        const activeEvent = getActiveHeroEvent();
+
+        if (!prefs.showLiveHms || !activeEvent) {
+          hmsBar.classList.add('hidden');
+          detailHms.classList.add('hidden');
+          return;
+        }
+
+        hmsBar.classList.remove('hidden');
+        detailHms.classList.remove('hidden');
+
+        const [y, m, d] = activeEvent.date.split('-').map(Number);
+        const targetTime = new Date(y, m - 1, d, 0, 0, 0).getTime();
+        const diffSec = Math.floor(Math.abs(targetTime - Date.now()) / 1000);
+
+        const hours = Math.floor((diffSec % 86400) / 3600);
+        const mins = Math.floor((diffSec % 3600) / 60);
+        const secs = diffSec % 60;
+
+        const pad = n => String(n).padStart(2, '0');
+        document.getElementById('live-hms-text').textContent = `${pad(hours)} 时 ${pad(mins)} 分 ${pad(secs)} 秒`;
+        detailHms.textContent = `${pad(hours)}:${pad(mins)}:${pad(secs)}`;
+      };
+      updateClock();
+      hmsTimer = setInterval(updateClock, 1000);
+    }
+
+    // ==================== 点击屏幕飘爱心特效 ====================
+    function spawnHeartOnTap(e) {
+      if (!prefs.enableHearts) return;
+      if (document.querySelector('#bg-modal:not(.hidden), #editor-modal:not(.hidden), #pref-modal:not(.hidden), #top-text-modal:not(.hidden), #category-drawer:not(.hidden), #image-modal:not(.hidden), #lock-screen-view:not(.hidden), #role-switch-modal:not(.hidden)')) {
+        return;
+      }
+
+      const colors = ['#fb7185', '#f43f5e', '#f59e0b', '#fda4af', '#fde68a'];
+      for (let i = 0; i < 2; i++) {
+        const heart = document.createElement('div');
+        heart.className = 'floating-heart';
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const size = 18 + Math.floor(Math.random() * 14);
+        const drift = (Math.random() - 0.5) * 70;
+        const rot = (Math.random() - 0.5) * 45;
+
+        heart.style.left = `${e.clientX + (i * 14 - 7)}px`;
+        heart.style.top = `${e.clientY}px`;
+        heart.style.fontSize = `${size}px`;
+        heart.style.color = color;
+        heart.style.setProperty('--drift', `${drift}px`);
+        heart.style.setProperty('--rot', `${rot}deg`);
+        heart.innerHTML = '<i class="fa-solid fa-heart"></i>';
+
+        document.body.appendChild(heart);
+        setTimeout(() => heart.remove(), 1250);
       }
     }
 
-    function openBgSettingsModal() {
-      updateBgModalUI();
-      document.getElementById('bg-modal').classList.remove('hidden');
-    }
-
-    function closeBgSettingsModal() {
-      document.getElementById('bg-modal').classList.add('hidden');
-    }
-
-    function updateBgModalUI() {
-      const controls = document.getElementById('custom-bg-controls');
-      if (bgSettings.customDataUrl) {
-        controls.classList.remove('hidden');
-        document.getElementById('bg-preview-thumb').src = bgSettings.customDataUrl;
-        document.getElementById('bg-scrim-range').value = bgSettings.scrimOpacity ?? 20;
-        document.getElementById('scrim-val-text').textContent = `${bgSettings.scrimOpacity ?? 20}%`;
-        document.getElementById('bg-pos-y-range').value = bgSettings.posY ?? 35;
-        document.getElementById('pos-y-val-text').textContent = `${bgSettings.posY ?? 35}%`;
-      } else {
-        controls.classList.add('hidden');
-      }
-    }
-
-    function updateBgPositionY(val) {
-      bgSettings.posY = Number(val);
-      document.getElementById('pos-y-val-text').textContent = `${val}%`;
-      saveBgSettings();
-      applyBackgroundAppearance();
-    }
-
-    function updateScrimOpacity(val) {
-      bgSettings.scrimOpacity = Number(val);
-      document.getElementById('scrim-val-text').textContent = `${val}%`;
-      saveBgSettings();
-      applyBackgroundAppearance();
-    }
-
-    function clearCustomBg() {
-      bgSettings.customDataUrl = null;
-      saveBgSettings();
-      applyBackgroundAppearance();
-      updateBgModalUI();
-      showToast('已恢复默认渐变壁纸');
-    }
-
-    function selectBuiltinTheme(idx) {
-      bgSettings.customDataUrl = null;
-      bgSettings.themeIndex = idx;
-      saveBgSettings();
-      applyBackgroundAppearance();
-      updateBgModalUI();
-      showToast(`已切换：${THEME_NAMES[idx]}`);
-    }
-
-    // ==================== 渲染首页列表与置顶卡 ====================
+    // ==================== 渲染首页主视觉与列表 ====================
     function renderAll() {
       updateCategoryCounts();
+
+      const heroEvent = getActiveHeroEvent();
+      const heroStatusBar = document.getElementById('hero-status-bar');
+      const heroTrigger = document.getElementById('hero-card-trigger');
+      const heroEmpty = document.getElementById('hero-empty-state');
+      const milestoneBadge = document.getElementById('milestone-badge');
+
+      if (!heroEvent) {
+        heroStatusBar.classList.add('hidden');
+        heroTrigger.classList.add('hidden');
+        heroEmpty.classList.remove('hidden');
+      } else {
+        heroStatusBar.classList.remove('hidden');
+        heroTrigger.classList.remove('hidden');
+        heroEmpty.classList.add('hidden');
+
+        const hInfo = calculateDayInfo(heroEvent.date);
+        document.getElementById('hero-days').textContent = hInfo.days;
+        document.getElementById('hero-title').textContent = formatEventDisplayTitle(heroEvent.title, hInfo);
+        document.getElementById('hero-date').innerHTML = `<i class="fa-regular fa-calendar text-[11px]"></i><span>${hInfo.formattedDate}</span>`;
+
+        const statusDot = document.getElementById('hero-status-dot');
+        const statusLabel = document.getElementById('hero-status-label');
+        if (hInfo.isToday) {
+          statusDot.className = 'w-2 h-2 rounded-full bg-rose-400';
+          statusLabel.textContent = '置顶纪念 · 就是今天';
+        } else if (hInfo.isPast) {
+          statusDot.className = 'w-2 h-2 rounded-full bg-amber-300';
+          statusLabel.textContent = '置顶纪念 · 累计已过';
+        } else {
+          statusDot.className = 'w-2 h-2 rounded-full bg-rose-300';
+          statusLabel.textContent = '置顶倒数 · 敬请期待';
+        }
+
+        if (prefs.showMilestones) {
+          milestoneBadge.classList.remove('hidden');
+          document.getElementById('milestone-text').textContent = getMilestoneLabel(hInfo.days, hInfo.isPast);
+        } else {
+          milestoneBadge.classList.add('hidden');
+        }
+      }
 
       const filtered = currentCategory === '全部'
         ? events
         : events.filter(item => item.category === currentCategory);
 
-      let pinnedItem = filtered.find(item => item.pinned) || filtered[0];
-      const pinnedContainer = document.getElementById('pinned-container');
       const listContainer = document.getElementById('events-list');
-      const emptyState = document.getElementById('empty-state');
-
-      if (!pinnedItem) {
-        pinnedContainer.parentElement.classList.add('hidden');
-        listContainer.innerHTML = '';
-        emptyState.classList.remove('hidden');
-        return;
-      }
-
-      pinnedContainer.parentElement.classList.remove('hidden');
-      emptyState.classList.add('hidden');
-
-      // 渲染锁屏置顶主视觉
-      const pInfo = calculateDayInfo(pinnedItem.date);
-      document.getElementById('pinned-title').textContent = formatEventDisplayTitle(pinnedItem.title, pInfo);
-      document.getElementById('pinned-date').innerHTML = `<i class="fa-regular fa-calendar text-[11px]"></i><span>${pInfo.formattedDate}</span>`;
-      document.getElementById('pinned-days').textContent = pInfo.days;
-      document.getElementById('pinned-dot').className = `inline-block w-1.5 h-1.5 rounded-full ${pInfo.isPast ? 'bg-amber-400' : 'bg-sky-400'}`;
-      document.getElementById('pinned-badge-text').textContent = pInfo.isPast ? '累计已过' : '置顶倒数';
-      pinnedContainer.dataset.id = pinnedItem.id;
-
-      // 渲染通透磨砂列表项
       listContainer.innerHTML = filtered.map(item => {
         const info = calculateDayInfo(item.date);
-        const badgeColor = info.isPast
-          ? 'bg-amber-500/85 text-white'
-          : 'bg-sky-500/85 text-white';
+        const badgeColor = info.isPast ? 'bg-[#8b5a2b] text-amber-50' : 'bg-rose-400 text-white';
         const label = formatEventDisplayTitle(item.title, info);
+        const isPinned = heroEvent && heroEvent.id === item.id;
 
         return `
-          <div onclick="openDetail('${item.id}')" class="glass-list-item rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer">
-            <div class="min-w-0 flex-1 pr-3">
-              <div class="font-semibold text-white text-[15px] truncate">${escapeHtml(label)}</div>
-              <div class="text-[11px] text-white/65 mt-0.5">${info.formattedDate}</div>
+          <div onclick="openDetail('${item.id}')" class="cute-list-item rounded-2xl px-3.5 py-2.5 flex items-center justify-between cursor-pointer">
+            <div class="flex items-center space-x-2.5 min-w-0 flex-1 pr-2">
+              <button type="button" onclick="event.stopPropagation(); pinEventToHero('${item.id}')" class="w-7 h-7 rounded-full ${isPinned ? 'bg-amber-300 text-[#4a2e18]' : 'bg-amber-900/10 text-[#8c6239]'} flex items-center justify-center text-[11px] shrink-0 transition" title="设为顶部置顶">
+                <i class="fa-solid fa-thumbtack"></i>
+              </button>
+              <div class="min-w-0 flex-1">
+                <div class="font-extrabold text-[#4a2e18] text-sm truncate">${escapeHtml(label)}</div>
+                <div class="text-[11px] text-[#8c6239] font-semibold mt-0.5">${info.formattedDate}</div>
+              </div>
             </div>
-            <div class="flex items-center space-x-1.5 shrink-0">
-              <span class="num-tabular font-extrabold text-xl text-white tracking-tight">${info.days}</span>
-              <span class="${badgeColor} text-[10px] font-bold px-2 py-0.5 rounded-md">天</span>
+            <div class="flex items-center space-x-2 shrink-0">
+              <span class="num-tabular font-black text-lg text-[#4a2e18]">${info.days}</span>
+              <span class="${badgeColor} text-[10px] font-bold px-2 py-0.5 rounded-full">天</span>
+              <button type="button" onclick="event.stopPropagation(); quickDeleteEvent('${item.id}')" class="w-7 h-7 rounded-full bg-amber-900/10 hover:bg-rose-500 text-[#8c6239] hover:text-white flex items-center justify-center text-xs transition" aria-label="删除">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
             </div>
           </div>
         `;
       }).join('');
     }
 
-    function updateCategoryCounts() {
-      document.getElementById('count-all').textContent = events.length;
-      document.getElementById('count-life').textContent = events.filter(e => e.category === '生活').length;
-      document.getElementById('count-work').textContent = events.filter(e => e.category === '工作').length;
-      document.getElementById('count-love').textContent = events.filter(e => e.category === '纪念日').length;
+    async function quickDeleteEvent(id) {
+      events = events.filter(e => e.id !== id);
+      if (events.length > 0 && !events.some(e => e.pinned)) {
+        events[0].pinned = true;
+      }
+      await saveCurrentAccountState();
+      renderAll();
+      showToast('已从当前空间删除');
     }
 
-    // ==================== 详情视图与3种卡片风格切换 ====================
-    function openPinnedDetail() {
-      const id = document.getElementById('pinned-container').dataset.id;
-      if (id) openDetail(id);
+    function updateCategoryCounts() {
+      document.getElementById('count-all').textContent = events.length;
+      document.getElementById('count-love').textContent = events.filter(e => e.category === '纪念日').length;
+      document.getElementById('count-life').textContent = events.filter(e => e.category === '生活').length;
+      document.getElementById('count-work').textContent = events.filter(e => e.category === '工作').length;
+    }
+
+    // ==================== 详情页与双样式卡片 ====================
+    function openHeroDetail() {
+      const heroEvent = getActiveHeroEvent();
+      if (heroEvent) openDetail(heroEvent.id);
+      else showToast('请先添加一个纪念日再生成海报哦');
     }
 
     function openDetail(id) {
@@ -873,47 +1640,39 @@
 
     function setDetailCardStyle(style) {
       detailCardStyle = style;
-      const card = document.getElementById('capture-card');
+      const box = document.getElementById('detail-card-box');
       const header = document.getElementById('detail-card-header');
       const body = document.getElementById('detail-card-body');
       const daysNum = document.getElementById('detail-days-num');
       const subUnit = document.getElementById('detail-sub-unit');
       const footer = document.getElementById('detail-card-footer');
 
-      // 更新顶部切换按钮高亮
-      ['frameless', 'glass', 'classic'].forEach(s => {
-        const btn = document.getElementById(`style-btn-${s}`);
-        if (s === style) {
-          btn.className = 'px-2.5 py-1 rounded-full bg-white text-slate-900 transition';
-        } else {
-          btn.className = 'px-2.5 py-1 rounded-full text-white/85 transition';
-        }
-      });
+      const btnGlass = document.getElementById('style-btn-glass');
+      const btnClassic = document.getElementById('style-btn-classic');
 
       const item = events.find(e => e.id === currentDetailId);
       const info = item ? calculateDayInfo(item.date) : { isPast: false };
 
-      if (style === 'frameless') {
-        card.className = 'w-full max-w-[330px] transition-all duration-300 text-center';
-        header.className = 'inline-block glass-pill px-4 py-1.5 rounded-full text-white font-semibold text-sm tracking-wide mb-2';
-        body.className = 'py-2 flex flex-col items-center justify-center';
-        daysNum.className = 'num-tabular text-[104px] font-black text-white leading-none tracking-tighter hero-text-shadow';
-        subUnit.className = 'mt-2 text-xs text-white/90 font-semibold tracking-wider glass-pill px-3 py-0.5 rounded-full';
-        footer.className = 'mt-2 text-xs text-white/85 font-medium hero-text-shadow';
-      } else if (style === 'glass') {
-        card.className = 'w-full max-w-[320px] glass-detail-card rounded-[28px] overflow-hidden transition-all duration-300 text-center';
-        header.className = 'bg-white/15 border-b border-white/20 text-white py-3.5 px-5 font-bold text-base tracking-wide';
-        body.className = 'py-10 px-4 flex flex-col items-center justify-center';
-        daysNum.className = 'num-tabular text-[92px] font-black text-white leading-none tracking-tighter hero-text-shadow';
-        subUnit.className = 'mt-3 text-xs text-white/90 font-semibold bg-white/15 px-3 py-1 rounded-full';
-        footer.className = 'bg-black/15 border-t border-white/15 py-3 px-4 text-xs text-white/85 font-medium';
+      if (style === 'glass') {
+        btnGlass.className = 'px-3 py-1 rounded-full bg-amber-200 text-[#4a2e18] transition';
+        btnClassic.className = 'px-3 py-1 rounded-full text-amber-50/90 transition';
+
+        box.className = 'relative w-full max-w-[320px] card-style-glass rounded-[32px] overflow-visible transition-all duration-300 text-center';
+        header.className = 'bg-amber-200/20 border-b border-amber-200/25 text-amber-50 py-3.5 px-5 font-extrabold text-base tracking-wide';
+        body.className = 'py-8 px-4 flex flex-col items-center justify-center';
+        daysNum.className = 'num-tabular text-[92px] font-black text-white leading-none tracking-tighter adaptive-shadow-dark-bg';
+        subUnit.className = 'mt-3 text-xs text-amber-50 font-bold bg-amber-200/20 px-3.5 py-1 rounded-full';
+        footer.className = 'bg-black/15 border-t border-amber-200/20 py-3 px-4 text-xs text-amber-100/90 font-semibold';
       } else {
-        card.className = 'w-full max-w-[320px] bg-white rounded-[26px] shadow-2xl overflow-hidden transition-all duration-300 text-center';
-        header.className = `${info.isPast ? 'bg-amber-500' : 'bg-sky-600'} text-white py-3.5 px-5 font-bold text-base tracking-wide`;
-        body.className = 'py-10 px-4 flex flex-col items-center justify-center bg-white';
-        daysNum.className = 'num-tabular text-[92px] font-black text-slate-900 leading-none tracking-tighter';
-        subUnit.className = 'mt-3 text-xs text-slate-500 font-semibold bg-slate-100 px-3 py-1 rounded-full';
-        footer.className = 'bg-slate-50 border-t border-slate-100 py-3 px-4 text-xs text-slate-500 font-medium';
+        btnClassic.className = 'px-3 py-1 rounded-full bg-amber-200 text-[#4a2e18] transition';
+        btnGlass.className = 'px-3 py-1 rounded-full text-amber-50/90 transition';
+
+        box.className = 'relative w-full max-w-[320px] bg-[#fffdf9] border-2 border-amber-200 rounded-[32px] shadow-2xl overflow-visible transition-all duration-300 text-center';
+        header.className = `${info.isPast ? 'bg-[#8b5a2b]' : 'bg-rose-400'} text-amber-50 py-3.5 px-5 font-extrabold text-base tracking-wide`;
+        body.className = 'py-8 px-4 flex flex-col items-center justify-center bg-[#fffdf9]';
+        daysNum.className = 'num-tabular text-[92px] font-black text-[#4a2e18] leading-none tracking-tighter';
+        subUnit.className = 'mt-3 text-xs text-[#8c6239] font-bold bg-amber-100 px-3.5 py-1 rounded-full';
+        footer.className = 'bg-[#fdf6eb] border-t border-amber-900/10 py-3 px-4 text-xs text-[#8c6239] font-semibold';
       }
     }
 
@@ -923,125 +1682,187 @@
       currentDetailId = null;
     }
 
-    function pinCurrentDetail() {
-      if (!currentDetailId) return;
-      events.forEach(e => e.pinned = (e.id === currentDetailId));
-      saveToStorage();
-      renderAll();
-      showToast('已设为首页锁屏置顶');
-    }
-
     function editCurrentDetail() {
-      if (!currentDetailId) return;
-      openEditorModal(currentDetailId);
+      if (currentDetailId) openEditorModal(currentDetailId);
     }
 
-    // ==================== 使用 Canvas 合成分享海报 (完美保留照片主体) ====================
-    function generateCardImage() {
+    // ==================== 一键生成萌系年度报告海报 ====================
+    function generateCleanPoster() {
       const item = events.find(e => e.id === currentDetailId);
       if (!item) return;
       const info = calculateDayInfo(item.date);
       const headerTitle = formatEventDisplayTitle(item.title, info);
+      const milestoneStr = getMilestoneLabel(info.days, info.isPast);
+
+      const romanticQuotes = [
+        '“往后余生，风雪是你，平淡是你，目光所致也是你。”',
+        '“时间把普通日子熬成蜂蜜，而你是所有心动的起点。”',
+        '“岁岁年年，万喜万般宜，与你一起虚度光阴也浪漫。”',
+        '“每一次倒数与累计，都是奔赴彼此的温柔证明。”'
+      ];
+      const quote = romanticQuotes[info.days % romanticQuotes.length];
 
       const canvas = document.createElement('canvas');
       canvas.width = 750;
-      canvas.height = 1120;
+      canvas.height = 1200;
       const ctx = canvas.getContext('2d');
 
-      const drawOverlayContent = () => {
-        if (detailCardStyle === 'frameless') {
-          // 海报模式：把文字放在下方 1/3 处，上方 2/3 完整保留照片人像！
-          const grad = ctx.createLinearGradient(0, 520, 0, 1120);
-          grad.addColorStop(0, 'rgba(0,0,0,0)');
-          grad.addColorStop(1, 'rgba(0,0,0,0.72)');
-          ctx.fillStyle = grad;
-          ctx.fillRect(0, 520, 750, 600);
+      const drawBearBadge = (cx, cy, scale = 1) => {
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.scale(scale, scale);
+        ctx.fillStyle = '#8b5a2b';
+        ctx.beginPath(); ctx.arc(-34, -26, 17, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(34, -26, 17, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#f6c445';
+        ctx.beginPath(); ctx.arc(-34, -26, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(34, -26, 9, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#8b5a2b';
+        ctx.beginPath(); ctx.ellipse(0, 0, 46, 36, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(244, 143, 177, 0.72)';
+        ctx.beginPath(); ctx.ellipse(-28, 4, 7.5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(28, 4, 7.5, 4.5, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#2d1a0e';
+        ctx.beginPath(); ctx.arc(-18, -5, 4.2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(18, -5, 4.2, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fffdf9';
+        ctx.beginPath(); ctx.ellipse(0, 9, 17, 13, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#2d1a0e';
+        ctx.beginPath(); ctx.ellipse(0, 4, 4.5, 3.2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#2d1a0e';
+        ctx.lineWidth = 2.6;
+        ctx.beginPath(); ctx.moveTo(0, 7); ctx.lineTo(-6, 13); ctx.moveTo(0, 7); ctx.lineTo(6, 13); ctx.stroke();
+        ctx.restore();
+      };
 
-          ctx.textAlign = 'center';
-          ctx.fillStyle = 'rgba(255,255,255,0.92)';
-          ctx.font = '600 32px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillText(headerTitle, 375, 760);
+      const renderEditorialPoster = () => {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = 'rgba(253, 230, 138, 0.95)';
+        ctx.font = '800 20px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(`HONEY LOVE REPORT · ${new Date().getFullYear()}`, 64, 84);
 
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = '900 175px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillText(String(info.days), 375, 920);
+        ctx.fillStyle = '#FFFDF9';
+        ctx.font = '800 34px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(prefs.topText, 64, 128);
 
-          ctx.fillStyle = 'rgba(255,255,255,0.8)';
-          ctx.font = '500 26px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillText(`目标日: ${info.formattedDate} · Days Matter`, 375, 1025);
-        } else {
-          // 居中卡片模式
-          ctx.save();
-          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-          ctx.shadowBlur = 40;
-          ctx.shadowOffsetY = 18;
-          const cardX = 85, cardY = 230, cardW = 580, cardH = 620, r = 36;
+        drawBearBadge(635, 108, 0.88);
+
+        ctx.strokeStyle = 'rgba(253, 230, 138, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(64, 152);
+        ctx.lineTo(686, 152);
+        ctx.stroke();
+
+        const cardX = 64, cardY = 540, cardW = 622, cardH = 540, r = 38;
+        ctx.save();
+        ctx.shadowColor = 'rgba(45, 26, 14, 0.38)';
+        ctx.shadowBlur = 45;
+        ctx.shadowOffsetY = 20;
+        ctx.beginPath();
+        ctx.roundRect(cardX, cardY, cardW, cardH, r);
+        ctx.fillStyle = 'rgba(62, 39, 35, 0.62)';
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.roundRect(cardX, cardY, cardW, cardH, r);
+        ctx.clip();
+        ctx.strokeStyle = 'rgba(253, 230, 138, 0.5)';
+        ctx.lineWidth = 3;
+        ctx.stroke();
+
+        drawBearBadge(590, cardY + 72, 0.75);
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#FDE68A';
+        ctx.font = '800 24px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(`🍯 ${headerTitle}`, cardX + 44, cardY + 74);
+
+        ctx.fillStyle = '#FFFDF9';
+        ctx.font = '900 168px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(String(info.days), cardX + 40, cardY + 245);
+
+        const numWidth = ctx.measureText(String(info.days)).width;
+        ctx.fillStyle = '#FDE68A';
+        ctx.font = '800 32px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText('DAYS', cardX + 54 + numWidth, cardY + 245);
+
+        if (prefs.showMilestones) {
+          ctx.fillStyle = 'rgba(253, 230, 138, 0.22)';
           ctx.beginPath();
-          ctx.roundRect(cardX, cardY, cardW, cardH, r);
-          ctx.fillStyle = detailCardStyle === 'glass' ? 'rgba(255, 255, 255, 0.22)' : '#FFFFFF';
+          ctx.roundRect(cardX + 44, cardY + 278, 370, 44, 22);
           ctx.fill();
-          ctx.restore();
 
-          ctx.save();
-          ctx.beginPath();
-          ctx.roundRect(cardX, cardY, cardW, cardH, r);
-          ctx.clip();
-
-          if (detailCardStyle !== 'glass') {
-            ctx.fillStyle = info.isPast ? '#F59E0B' : '#0284C7';
-            ctx.fillRect(cardX, cardY, cardW, 110);
-          }
-
-          ctx.fillStyle = '#FFFFFF';
-          ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.textAlign = 'center';
-          ctx.fillText(headerTitle, 375, cardY + 68);
-
-          ctx.fillStyle = detailCardStyle === 'glass' ? '#FFFFFF' : '#0F172A';
-          ctx.font = '900 200px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillText(String(info.days), 375, cardY + 365);
-
-          ctx.fillStyle = detailCardStyle === 'glass' ? 'rgba(255,255,255,0.85)' : '#64748B';
-          ctx.font = '500 26px -apple-system, BlinkMacSystemFont, sans-serif';
-          ctx.fillText(`目标日: ${info.formattedDate}`, 375, cardY + 560);
-          ctx.restore();
+          ctx.fillStyle = '#FEF3C7';
+          ctx.font = '700 22px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillText(`👑 ${milestoneStr}`, cardX + 64, cardY + 307);
         }
+
+        ctx.strokeStyle = 'rgba(253, 230, 138, 0.22)';
+        ctx.beginPath();
+        ctx.moveTo(cardX + 44, cardY + 356);
+        ctx.lineTo(cardX + cardW - 44, cardY + 356);
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(255, 253, 249, 0.95)';
+        ctx.font = '500 23px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(quote.slice(0, 18), cardX + 44, cardY + 402);
+        ctx.fillText(quote.slice(18), cardX + 44, cardY + 436);
+
+        ctx.fillStyle = 'rgba(253, 230, 138, 0.85)';
+        ctx.font = '700 21px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText(`起始/目标日 · ${info.formattedDate}`, cardX + 44, cardY + 496);
+        ctx.restore();
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = 'rgba(254, 243, 199, 0.72)';
+        ctx.font = '600 20px -apple-system, BlinkMacSystemFont, sans-serif';
+        ctx.fillText('RECORDED WITH SWEETNESS · DAYS MATTER', 375, 1142);
 
         document.getElementById('generated-img').src = canvas.toDataURL('image/png');
         document.getElementById('image-modal').classList.remove('hidden');
       };
 
-      if (bgSettings.customDataUrl) {
+      const photoUrl = slideState.photos.length > 0
+        ? slideState.photos[slideState.currentIndex % slideState.photos.length]
+        : null;
+
+      if (photoUrl) {
         const bgImg = new Image();
         bgImg.onload = () => {
+          ctx.save();
+          if (slideState.blurPx > 0) {
+            ctx.filter = `blur(${slideState.blurPx * 1.5}px)`;
+          }
           const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
           const drawW = bgImg.width * scale;
           const drawH = bgImg.height * scale;
           const offsetX = (canvas.width - drawW) / 2;
-          const offsetY = (canvas.height - drawH) * ((bgSettings.posY ?? 35) / 100);
+          const offsetY = (canvas.height - drawH) / 2;
           ctx.drawImage(bgImg, offsetX, offsetY, drawW, drawH);
+          ctx.restore();
 
-          ctx.fillStyle = `rgba(0, 0, 0, ${(bgSettings.scrimOpacity ?? 20) / 100})`;
+          const scrimGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+          const baseAlpha = slideState.scrimOpacity / 100;
+          scrimGrad.addColorStop(0, `rgba(62,39,35,${Math.max(baseAlpha + 0.25, 0.45)})`);
+          scrimGrad.addColorStop(0.35, `rgba(62,39,35,${baseAlpha * 0.4})`);
+          scrimGrad.addColorStop(1, `rgba(62,39,35,${Math.max(baseAlpha + 0.35, 0.55)})`);
+          ctx.fillStyle = scrimGrad;
           ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-          drawOverlayContent();
+          renderEditorialPoster();
         };
-        bgImg.src = bgSettings.customDataUrl;
+        bgImg.src = photoUrl;
       } else {
-        const grad = ctx.createLinearGradient(0, 0, 750, 1120);
-        const palettes = [
-          ['#2c3e50', '#4ca1af'],
-          ['#0F2027', '#2C5364'],
-          ['#c94b4b', '#4b134f'],
-          ['#ee9ca7', '#ffdde1'],
-          ['#3a6186', '#89253e']
-        ];
-        const [c1, c2] = palettes[bgSettings.themeIndex] || palettes[0];
-        grad.addColorStop(0, c1);
-        grad.addColorStop(1, c2);
+        const grad = ctx.createLinearGradient(0, 0, 750, 1200);
+        grad.addColorStop(0, '#8d6e63');
+        grad.addColorStop(0.5, '#5d4037');
+        grad.addColorStop(1, '#3e2723');
         ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 750, 1120);
-        drawOverlayContent();
+        ctx.fillRect(0, 0, 750, 1200);
+        renderEditorialPoster();
       }
     }
 
@@ -1054,7 +1875,7 @@
       if (!item) return;
       const info = calculateDayInfo(item.date);
       const label = formatEventDisplayTitle(item.title, info);
-      const text = `【倒数日】${label} ${info.days} 天（目标日：${info.formattedDate}）`;
+      const text = `🧸【${prefs.topText}】${label} ${info.days} 天（${info.formattedDate}）`;
 
       const tempInput = document.createElement('textarea');
       tempInput.value = text;
@@ -1062,35 +1883,246 @@
       tempInput.select();
       document.execCommand('copy');
       document.body.removeChild(tempInput);
-      showToast('已复制倒数日文案');
+      showToast('已复制浪漫文案');
     }
 
-    // ==================== 新增/编辑弹窗逻辑 ====================
-    function openEditorModal(editId = null) {
-      const modal = document.getElementById('editor-modal');
-      const deleteBtn = document.getElementById('delete-event-btn');
+    // ==================== 弹窗与设置控制 ====================
+    function togglePurePhotoMode() {
+      purePhotoMode = !purePhotoMode;
+      const hero = document.getElementById('home-hero-section');
+      const list = document.getElementById('events-list-wrapper');
+      const nav = document.getElementById('home-bottom-nav');
+      const eyeBtn = document.getElementById('pure-mode-btn');
 
-      if (editId) {
-        const item = events.find(e => e.id === editId);
-        if (!item) return;
-        document.getElementById('editor-modal-title').textContent = '编辑倒数日';
-        document.getElementById('edit-id').value = item.id;
-        document.getElementById('edit-title').value = item.title;
-        document.getElementById('edit-date').value = item.date;
-        document.getElementById('edit-pinned').checked = !!item.pinned;
-        setEditorCategory(item.category || '纪念日');
-        deleteBtn.classList.remove('hidden');
+      hero.classList.toggle('opacity-0', purePhotoMode);
+      hero.classList.toggle('pointer-events-none', purePhotoMode);
+      list.classList.toggle('opacity-0', purePhotoMode);
+      list.classList.toggle('pointer-events-none', purePhotoMode);
+      nav.classList.toggle('opacity-0', purePhotoMode);
+      nav.classList.toggle('pointer-events-none', purePhotoMode);
+
+      eyeBtn.innerHTML = purePhotoMode
+        ? '<i class="fa-regular fa-eye-slash text-amber-300"></i>'
+        : '<i class="fa-regular fa-eye"></i>';
+
+      if (purePhotoMode) showToast('已隐藏文字，点击右上角眼睛恢复');
+    }
+
+    function openBgSettingsModal() {
+      updateBgModalUI();
+      document.getElementById('bg-modal').classList.remove('hidden');
+    }
+    function closeBgSettingsModal() {
+      document.getElementById('bg-modal').classList.add('hidden');
+    }
+
+    function updateBgModalUI() {
+      const galleryBox = document.getElementById('slides-gallery-box');
+      const thumbGrid = document.getElementById('slides-thumb-grid');
+      document.getElementById('slide-count-label').textContent = slideState.photos.length;
+
+      if (slideState.photos.length > 0) {
+        galleryBox.classList.remove('hidden');
+        thumbGrid.innerHTML = slideState.photos.map((src, i) => `
+          <div class="relative aspect-square rounded-xl overflow-hidden border-2 ${i === (slideState.currentIndex % slideState.photos.length) ? 'border-[#8b5a2b] ring-2 ring-amber-400/60' : 'border-amber-900/15'}">
+            <img src="${src}" onclick="goToSlide(${i}); updateBgModalUI();" class="w-full h-full object-cover cursor-pointer" />
+            <button type="button" onclick="removeSlide(${i})" class="absolute top-1 right-1 w-5 h-5 rounded-full bg-rose-500/95 text-white text-[10px] flex items-center justify-center shadow">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        `).join('');
       } else {
-        document.getElementById('editor-modal-title').textContent = '添加新日子';
-        document.getElementById('edit-id').value = '';
-        document.getElementById('edit-title').value = '';
-        document.getElementById('edit-date').value = formatDateInput(new Date(Date.now() + 86400000 * 7));
-        document.getElementById('edit-pinned').checked = events.length === 0;
-        setEditorCategory(currentCategory === '全部' ? '纪念日' : currentCategory);
-        deleteBtn.classList.add('hidden');
+        galleryBox.classList.add('hidden');
       }
 
-      modal.classList.remove('hidden');
+      document.getElementById('autoplay-toggle').checked = slideState.autoPlay;
+      [5, 7, 10].forEach(sec => {
+        const btn = document.getElementById(`int-btn-${sec}`);
+        btn.className = slideState.intervalSec === sec
+          ? 'px-2.5 py-1 rounded-lg text-xs font-bold bg-[#8b5a2b] text-amber-50'
+          : 'px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-100 text-[#8c6239]';
+      });
+
+      document.getElementById('bg-blur-range').value = slideState.blurPx;
+      document.getElementById('blur-val-text').textContent = `${slideState.blurPx}px`;
+      document.getElementById('bg-scrim-range').value = slideState.scrimOpacity;
+      document.getElementById('scrim-val-text').textContent = `${slideState.scrimOpacity}%`;
+
+      updateLivePreviewStage();
+    }
+
+    function updateLivePreviewStage() {
+      const stageImg = document.getElementById('preview-stage-img');
+      const stageScrim = document.getElementById('preview-stage-scrim');
+      if (!stageImg || !stageScrim) return;
+
+      const photoUrl = slideState.photos.length > 0
+        ? slideState.photos[slideState.currentIndex % slideState.photos.length]
+        : null;
+
+      stageImg.classList.remove('theme-0', 'theme-1', 'theme-2', 'theme-3', 'theme-4');
+      stageImg.style.filter = slideState.blurPx > 0 ? `blur(${slideState.blurPx}px)` : 'none';
+
+      if (photoUrl) {
+        stageImg.style.backgroundImage = `url(${photoUrl})`;
+      } else {
+        stageImg.style.backgroundImage = '';
+        stageImg.classList.add(`theme-${slideState.currentIndex % 5}`);
+      }
+
+      const op = slideState.scrimOpacity / 100;
+      stageScrim.style.background = `linear-gradient(180deg, rgba(62,39,35,${op + 0.12}) 0%, rgba(0,0,0,${op * 0.4}) 50%, rgba(62,39,35,${op + 0.3}) 100%)`;
+    }
+
+    async function removeSlide(idx) {
+      slideState.photos.splice(idx, 1);
+      if (slideState.currentIndex >= slideState.photos.length) {
+        slideState.currentIndex = Math.max(0, slideState.photos.length - 1);
+      }
+      await saveCurrentAccountState();
+      applySlideVisuals(true);
+      renderSlideDots();
+      updateBgModalUI();
+      showToast('已删除该张壁纸');
+    }
+
+    async function clearAllSlides() {
+      slideState.photos = [];
+      slideState.currentIndex = 0;
+      await saveCurrentAccountState();
+      applySlideVisuals(true);
+      renderSlideDots();
+      updateBgModalUI();
+      showToast('已清空当前空间照片');
+    }
+
+    async function toggleAutoPlay(val) {
+      slideState.autoPlay = val;
+      await saveCurrentAccountState();
+      startSlideTimer();
+      showToast(val ? '已开启自动淡入淡出轮播' : '已关闭自动轮播');
+    }
+
+    async function setSlideInterval(sec) {
+      slideState.intervalSec = sec;
+      await saveCurrentAccountState();
+      updateBgModalUI();
+      startSlideTimer();
+      showToast(`轮播速度已设为 ${sec} 秒/张`);
+    }
+
+    async function updateBgBlur(val) {
+      slideState.blurPx = Number(val);
+      document.getElementById('blur-val-text').textContent = `${val}px`;
+      updateLivePreviewStage();
+      await saveCurrentAccountState();
+      applySlideVisuals(true);
+    }
+
+    async function updateScrimOpacity(val) {
+      slideState.scrimOpacity = Number(val);
+      document.getElementById('scrim-val-text').textContent = `${val}%`;
+      updateLivePreviewStage();
+      await saveCurrentAccountState();
+      applySlideVisuals(true);
+    }
+
+    // ==================== 小屋设置弹窗 ====================
+    function openPreferencesModal() {
+      document.getElementById('pref-lock-toggle').checked = sharedAuth.lockEnabled;
+      document.getElementById('pref-lock-prefix').value = sharedAuth.lockPrefix || 'love';
+      document.getElementById('pref-current-pwd-preview').textContent = `今日生效口令：${getExpectedDynamicPassword()}`;
+      document.getElementById('pref-hms-toggle').checked = prefs.showLiveHms;
+      document.getElementById('pref-hearts-toggle').checked = prefs.enableHearts;
+      document.getElementById('pref-milestone-toggle').checked = prefs.showMilestones;
+      document.getElementById('pref-modal').classList.remove('hidden');
+    }
+    function closePreferencesModal() {
+      document.getElementById('pref-modal').classList.add('hidden');
+    }
+    async function toggleLockEnabled(val) {
+      sharedAuth.lockEnabled = val;
+      await saveSharedAuthState();
+      showToast(val ? '已开启双人秘密口令锁' : '已关闭密码锁');
+    }
+    async function saveLockPrefix() {
+      const val = document.getElementById('pref-lock-prefix').value.trim();
+      if (!val) {
+        showToast('前缀不能为空');
+        return;
+      }
+      sharedAuth.lockPrefix = val;
+      await saveSharedAuthState();
+      document.getElementById('pref-current-pwd-preview').textContent = `今日生效口令：${getExpectedDynamicPassword()}`;
+      showToast('双人共用前缀已更新');
+    }
+    async function toggleLiveHms(val) {
+      prefs.showLiveHms = val;
+      await saveCurrentAccountState();
+      startLiveHmsTimer();
+    }
+    async function toggleHeartEffect(val) {
+      prefs.enableHearts = val;
+      await saveCurrentAccountState();
+    }
+    async function toggleMilestoneBadge(val) {
+      prefs.showMilestones = val;
+      await saveCurrentAccountState();
+      renderAll();
+    }
+
+    // ==================== 自定义顶部短句弹窗 ====================
+    function openCustomTopTextModal() {
+      document.getElementById('top-text-input').value = prefs.topText;
+      document.getElementById('top-text-modal').classList.remove('hidden');
+    }
+    function closeCustomTopTextModal() {
+      document.getElementById('top-text-modal').classList.add('hidden');
+    }
+    async function saveCustomTopText() {
+      const val = document.getElementById('top-text-input').value.trim();
+      prefs.topText = val || (currentRole === 'wife' ? '老婆的浪漫小窝' : '老公的浪漫小窝');
+      document.getElementById('custom-top-text').textContent = prefs.topText;
+      await saveCurrentAccountState();
+      closeCustomTopTextModal();
+      showToast('已更新当前空间标题');
+    }
+
+    // ==================== 抽屉与事件新增编辑 ====================
+    function toggleDrawer(show) {
+      document.getElementById('category-drawer').classList.toggle('hidden', !show);
+    }
+    function selectCategory(cat) {
+      currentCategory = cat;
+      toggleDrawer(false);
+      renderAll();
+    }
+
+    function openEditorModal(id = null) {
+      const titleEl = document.getElementById('editor-modal-title');
+      const idEl = document.getElementById('edit-id');
+      const nameEl = document.getElementById('edit-title');
+      const dateEl = document.getElementById('edit-date');
+      const delBtn = document.getElementById('delete-event-btn');
+
+      if (id) {
+        const item = events.find(e => e.id === id);
+        if (!item) return;
+        titleEl.textContent = '🧸 编辑事件';
+        idEl.value = item.id;
+        nameEl.value = item.title;
+        dateEl.value = item.date;
+        setEditorCategory(item.category);
+        delBtn.classList.remove('hidden');
+      } else {
+        titleEl.textContent = '🧸 添加新倒数日';
+        idEl.value = '';
+        nameEl.value = '';
+        dateEl.value = formatDateInput(new Date());
+        setEditorCategory('纪念日');
+        delBtn.classList.add('hidden');
+      }
+      document.getElementById('editor-modal').classList.remove('hidden');
     }
 
     function closeEditorModal() {
@@ -1100,19 +2132,17 @@
     function setEditorCategory(cat) {
       editorCategory = cat;
       document.querySelectorAll('.cat-radio').forEach(btn => {
-        if (btn.dataset.val === cat) {
-          btn.className = 'cat-radio py-2.5 rounded-2xl text-xs font-semibold border bg-white text-slate-900 border-white';
-        } else {
-          btn.className = 'cat-radio py-2.5 rounded-2xl text-xs font-semibold border border-white/15 text-white/75';
-        }
+        const active = btn.dataset.val === cat;
+        btn.className = active
+          ? 'cat-radio py-2.5 rounded-2xl text-xs font-extrabold border-2 border-[#8b5a2b] bg-amber-200/80 text-[#4a2e18]'
+          : 'cat-radio py-2.5 rounded-2xl text-xs font-bold border border-amber-900/15 text-[#8c6239]';
       });
     }
 
-    function saveEvent() {
+    async function saveEvent() {
       const id = document.getElementById('edit-id').value;
       const title = document.getElementById('edit-title').value.trim();
       const date = document.getElementById('edit-date').value;
-      const pinned = document.getElementById('edit-pinned').checked;
 
       if (!title) {
         showToast('请输入事件名称');
@@ -1123,145 +2153,48 @@
         return;
       }
 
-      if (pinned) {
-        events.forEach(e => e.pinned = false);
-      }
-
       if (id) {
         const idx = events.findIndex(e => e.id === id);
         if (idx !== -1) {
-          events[idx] = { ...events[idx], title, date, category: editorCategory, pinned };
-        }
-        if (currentDetailId === id) {
-          openDetail(id);
+          events[idx] = { ...events[idx], title, date, category: editorCategory };
+          if (id === 'together_main') {
+            sharedAuth.togetherStartDate = date;
+            await saveSharedAuthState();
+          }
         }
       } else {
-        events.unshift({
-          id: String(Date.now()),
+        const isFirst = events.length === 0;
+        events.push({
+          id: 'evt_' + Date.now(),
           title,
           date,
           category: editorCategory,
-          pinned
+          pinned: isFirst
         });
       }
 
-      saveToStorage();
-      renderAll();
+      await saveCurrentAccountState();
       closeEditorModal();
-      showToast('保存成功');
+      renderAll();
+      if (currentDetailId) openDetail(currentDetailId);
+      showToast(`已保存到${currentRole === 'wife' ? '老婆' : '老公'}空间`);
     }
 
-    function deleteCurrentEditingEvent() {
+    async function deleteCurrentEditingEvent() {
       const id = document.getElementById('edit-id').value;
       if (!id) return;
       events = events.filter(e => e.id !== id);
-      saveToStorage();
+      if (events.length > 0 && !events.some(e => e.pinned)) {
+        events[0].pinned = true;
+      }
+      await saveCurrentAccountState();
       closeEditorModal();
-      if (currentDetailId === id) {
-        closeDetail();
-      }
+      if (currentDetailId === id) closeDetail();
       renderAll();
-      showToast('已删除');
+      showToast('已从当前空间删除');
     }
 
-    // ==================== 抽屉与备份 ====================
-    function toggleDrawer(show) {
-      const drawer = document.getElementById('category-drawer');
-      if (show) drawer.classList.remove('hidden');
-      else drawer.classList.add('hidden');
-    }
-
-    function selectCategory(cat) {
-      currentCategory = cat;
-      document.getElementById('current-category-badge').textContent = cat === '全部' ? '全部事件' : cat;
-      toggleDrawer(false);
-      renderAll();
-    }
-
-    function switchTab(tab) {
-      if (tab === 'all') selectCategory('全部');
-    }
-
-    function showInstallGuide() {
-      document.getElementById('install-modal').classList.remove('hidden');
-    }
-    function closeInstallModal() {
-      document.getElementById('install-modal').classList.add('hidden');
-    }
-
-    function openBackupModal() {
-      document.getElementById('backup-textarea').value = JSON.stringify(events);
-      document.getElementById('backup-modal').classList.remove('hidden');
-    }
-    function closeBackupModal() {
-      document.getElementById('backup-modal').classList.add('hidden');
-    }
-
-    function exportBackup() {
-      const textarea = document.getElementById('backup-textarea');
-      textarea.value = JSON.stringify(events);
-      textarea.select();
-      document.execCommand('copy');
-      showToast('备份代码已复制到剪贴板');
-    }
-
-    function importBackup() {
-      try {
-        const raw = document.getElementById('backup-textarea').value.trim();
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          events = parsed;
-          saveToStorage();
-          renderAll();
-          closeBackupModal();
-          showToast('数据恢复成功！');
-        } else {
-          showToast('备份代码格式不正确');
-        }
-      } catch (e) {
-        showToast('无法解析备份代码');
-      }
-    }
-
-    function generateAppIcon() {
-      try {
-        const c = document.createElement('canvas');
-        c.width = 180;
-        c.height = 180;
-        const ctx = c.getContext('2d');
-        const grad = ctx.createLinearGradient(0, 0, 180, 180);
-        grad.addColorStop(0, '#1e293b');
-        grad.addColorStop(1, '#0f172a');
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, 180, 180);
-
-        ctx.fillStyle = '#FFFFFF';
-        ctx.font = '900 68px -apple-system, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('355', 90, 82);
-
-        ctx.fillStyle = '#fb7185';
-        ctx.font = 'bold 22px -apple-system, sans-serif';
-        ctx.fillText('DAYS', 90, 134);
-        document.getElementById('apple-touch-icon').href = c.toDataURL('image/png');
-      } catch (e) {}
-    }
-
-    function showToast(msg) {
-      const toast = document.getElementById('toast');
-      toast.textContent = msg;
-      toast.classList.remove('opacity-0');
-      setTimeout(() => toast.classList.add('opacity-0'), 2200);
-    }
-
-    function escapeHtml(str) {
-      return str.replace(/[&<>"']/g, m => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[m]));
-    }
-
-    window.onload = initApp;
+    window.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
