@@ -1,0 +1,1267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Days Matter · 倒数日</title>
+
+  <!-- iOS 添加到主屏幕原生全屏配置 -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="倒数日" />
+  <meta name="theme-color" content="#111827" />
+
+  <!-- 动态生成 iOS 桌面图标 -->
+  <link id="apple-touch-icon" rel="apple-touch-icon" href="" />
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 图标库 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    /* 全局原生级字体与交互细节 */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      box-sizing: border-box;
+      user-select: none;
+    }
+    input, textarea, select {
+      user-select: auto;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+      background-color: #0f172a;
+      margin: 0;
+      padding: 0;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 等宽数字，倒计时更整齐 */
+    .num-tabular {
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* 适配 iPhone 刘海屏 / 灵动岛安全区 */
+    .safe-top {
+      padding-top: env(safe-area-inset-top, 20px);
+    }
+    .safe-bottom {
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    /* 精选内置高级渐变背景主题 */
+    .theme-wood {
+      background: linear-gradient(155deg, #2c3e50 0%, #4ca1af 100%);
+    }
+    .theme-aurora {
+      background: linear-gradient(145deg, #0F2027 0%, #203A43 50%, #2C5364 100%);
+    }
+    .theme-sunset {
+      background: linear-gradient(145deg, #c94b4b 0%, #4b134f 100%);
+    }
+    .theme-sakura {
+      background: linear-gradient(145deg, #ee9ca7 0%, #ffdde1 100%);
+    }
+    .theme-nordic {
+      background: linear-gradient(145deg, #3a6186 0%, #89253e 100%);
+    }
+
+    /* 锁屏级文字柔和阴影，确保任何浅色/深色照片上都清晰 */
+    .hero-text-shadow {
+      text-shadow: 0 2px 18px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.45);
+    }
+
+    /* 高级液态毛玻璃胶囊按钮 */
+    .glass-pill {
+      background: rgba(255, 255, 255, 0.18);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.16s ease;
+    }
+    .glass-pill:active {
+      transform: scale(0.94);
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    /* 通透磨砂玻璃列表行 (不遮挡背景照片) */
+    .glass-list-item {
+      background: rgba(20, 24, 34, 0.32);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+      transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.16s ease;
+    }
+    .glass-list-item:active {
+      transform: scale(0.98);
+      background: rgba(20, 24, 34, 0.46);
+    }
+
+    /* 详情页磨砂玻璃大卡片 */
+    .glass-detail-card {
+      background: rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(26px);
+      -webkit-backdrop-filter: blur(26px);
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+    }
+
+    /* 隐藏的文件上传控件 */
+    #bg-file-input {
+      display: none;
+    }
+
+    /* 视图切换 */
+    .view-section {
+      transition: opacity 0.24s ease;
+    }
+    .hidden-view {
+      display: none !important;
+    }
+  </style>
+</head>
+<body class="text-white min-h-screen flex flex-col">
+
+  <!-- 全局隐藏相册选择器 -->
+  <input type="file" id="bg-file-input" accept="image/*" onchange="handleBgFileSelect(event)" />
+
+  <!-- ==================== 全局固定高清壁纸底层 (彻底解决滚动拉伸与遮挡) ==================== -->
+  <div id="global-bg-layer" class="fixed inset-0 z-0 theme-wood transition-all duration-300 bg-cover bg-no-repeat" style="background-position: 50% 35%;"></div>
+  <!-- 柔和暗角渐变遮罩，保护上下文字可读性，中间保持最高通透度 -->
+  <div id="global-scrim-layer" class="fixed inset-0 z-0 pointer-events-none transition-opacity duration-300" style="background: linear-gradient(180deg, rgba(0,0,0,0.28) 0%, rgba(0,0,0,0.04) 42%, rgba(0,0,0,0.48) 100%);"></div>
+
+  <!-- ==================== 1. 沉浸式锁屏风主视图 ==================== -->
+  <div id="home-view" class="view-section flex-1 flex flex-col min-h-screen pb-24 relative z-10">
+
+    <!-- 顶部极简透明悬浮栏 (无厚重色块) -->
+    <header class="safe-top sticky top-0 z-30">
+      <div class="py-2.5 px-4 flex items-center justify-between max-w-xl mx-auto">
+        <!-- 左侧分类抽屉 -->
+        <button onclick="toggleDrawer(true)" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-white text-sm" aria-label="分类菜单">
+          <i class="fa-solid fa-bars-staggered"></i>
+        </button>
+
+        <!-- 中间倒数本胶囊切换 -->
+        <button onclick="toggleDrawer(true)" class="glass-pill px-3.5 py-1.5 rounded-full flex items-center space-x-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span id="current-category-badge" class="text-xs font-semibold tracking-wide text-white">全部事件</span>
+          <i class="fa-solid fa-chevron-down text-[9px] text-white/75"></i>
+        </button>
+
+        <!-- 右侧工具：更换壁纸、纯享预览、新增 -->
+        <div class="flex items-center space-x-2">
+          <button onclick="togglePurePhotoMode()" id="pure-mode-btn" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-white text-sm" title="隐藏文字纯享壁纸">
+            <i class="fa-regular fa-eye"></i>
+          </button>
+          <button onclick="openBgSettingsModal()" class="glass-pill w-9 h-9 rounded-full flex items-center justify-center text-white text-sm" title="自定义背景壁纸">
+            <i class="fa-regular fa-image"></i>
+          </button>
+          <button onclick="openEditorModal()" class="w-9 h-9 rounded-full bg-white text-slate-900 shadow-lg active:scale-95 flex items-center justify-center text-sm font-bold transition" aria-label="添加倒数日">
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 置顶展示区：采用 iOS 锁屏级无框悬浮排版，完全不遮挡女朋友照片！ -->
+    <section id="home-hero-section" class="px-5 pt-4 pb-6 max-w-xl w-full mx-auto transition-all duration-300">
+      <div id="pinned-container" class="cursor-pointer active:scale-[0.99] transition select-none" onclick="openPinnedDetail()">
+        <!-- 状态微标 -->
+        <div class="inline-flex items-center space-x-1.5 glass-pill px-3 py-1 rounded-full mb-2">
+          <span class="inline-block w-1.5 h-1.5 rounded-full bg-amber-400" id="pinned-dot"></span>
+          <span class="text-[11px] font-semibold text-white/95 tracking-wide" id="pinned-badge-text">置顶倒数</span>
+        </div>
+
+        <!-- 超大通透锁屏数字 + 标题 -->
+        <div class="flex items-baseline space-x-2">
+          <span id="pinned-days" class="num-tabular text-[76px] font-extrabold text-white tracking-tight leading-none hero-text-shadow">355</span>
+          <span class="text-base font-bold text-white/90 tracking-widest uppercase hero-text-shadow">Days</span>
+        </div>
+
+        <h1 id="pinned-title" class="text-[22px] font-bold text-white mt-1.5 tracking-tight hero-text-shadow">和老婆在一起已经</h1>
+        <p id="pinned-date" class="text-xs text-white/80 font-medium mt-1 flex items-center space-x-1.5 hero-text-shadow">
+          <i class="fa-regular fa-calendar text-[11px]"></i>
+          <span>2025-12-04 星期四</span>
+        </p>
+      </div>
+    </section>
+
+    <!-- 中间留白呼吸区：把画面中心完整留给照片主体 -->
+    <div id="photo-breathing-space" class="flex-1 min-h-[120px] transition-all duration-300" onclick="openBgSettingsModal()"></div>
+
+    <!-- 底部通透磨砂列表区 -->
+    <main id="events-list" class="px-4 space-y-2.5 max-w-xl w-full mx-auto transition-opacity duration-300">
+      <!-- 动态渲染列表项 -->
+    </main>
+
+    <!-- 空状态提示 -->
+    <div id="empty-state" class="hidden flex flex-col items-center justify-center py-12 text-white/80">
+      <p class="text-sm font-medium hero-text-shadow">当前分类暂无倒数日</p>
+      <button onclick="openEditorModal()" class="mt-3 glass-pill px-5 py-2 text-white text-xs font-semibold rounded-full">立即添加事件</button>
+    </div>
+
+    <!-- 底部悬浮暗色磨砂导航栏 -->
+    <nav id="home-bottom-nav" class="fixed bottom-0 inset-x-0 bg-black/35 backdrop-blur-2xl border-t border-white/15 safe-bottom z-30 transition-opacity duration-300">
+      <div class="max-w-xl mx-auto py-2 px-6 flex items-center justify-between text-white/60">
+        <button onclick="switchTab('all')" id="tab-all" class="flex flex-col items-center text-white transition">
+          <i class="fa-solid fa-calendar-day text-base"></i>
+          <span class="text-[10px] mt-1 font-semibold">倒数日</span>
+        </button>
+        <button onclick="toggleDrawer(true)" class="flex flex-col items-center hover:text-white transition">
+          <i class="fa-solid fa-layer-group text-base"></i>
+          <span class="text-[10px] mt-1 font-medium">倒数本</span>
+        </button>
+        <button onclick="openBgSettingsModal()" class="flex flex-col items-center hover:text-white transition">
+          <i class="fa-solid fa-wand-magic-sparkles text-base"></i>
+          <span class="text-[10px] mt-1 font-medium">壁纸构图</span>
+        </button>
+        <button onclick="showInstallGuide()" class="flex flex-col items-center hover:text-white transition">
+          <i class="fa-brands fa-apple text-base"></i>
+          <span class="text-[10px] mt-1 font-medium">装到桌面</span>
+        </button>
+        <button onclick="openBackupModal()" class="flex flex-col items-center hover:text-white transition">
+          <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+          <span class="text-[10px] mt-1 font-medium">备份</span>
+        </button>
+      </div>
+    </nav>
+  </div>
+
+  <!-- ==================== 2. 详情海报视图 (3种高级样式，默认无遮挡) ==================== -->
+  <div id="detail-view" class="view-section hidden-view min-h-screen flex flex-col justify-between relative z-10">
+
+    <!-- 详情页顶部栏 -->
+    <header class="safe-top px-4 pt-2.5 flex items-center justify-between relative z-10">
+      <button onclick="closeDetail()" class="glass-pill px-3.5 py-1.5 rounded-full text-xs font-semibold text-white flex items-center space-x-1">
+        <i class="fa-solid fa-chevron-left text-[11px]"></i>
+        <span>返回</span>
+      </button>
+
+      <!-- 卡片形态切换胶囊：无框海报 / 通透玻璃 / 经典白卡 -->
+      <div class="glass-pill p-0.5 rounded-full flex items-center text-[11px] font-semibold">
+        <button onclick="setDetailCardStyle('frameless')" id="style-btn-frameless" class="px-2.5 py-1 rounded-full bg-white text-slate-900 transition">无框海报</button>
+        <button onclick="setDetailCardStyle('glass')" id="style-btn-glass" class="px-2.5 py-1 rounded-full text-white/85 transition">毛玻璃</button>
+        <button onclick="setDetailCardStyle('classic')" id="style-btn-classic" class="px-2.5 py-1 rounded-full text-white/85 transition">经典卡</button>
+      </div>
+
+      <button onclick="editCurrentDetail()" class="glass-pill px-3.5 py-1.5 rounded-full text-xs font-semibold text-white">
+        编辑
+      </button>
+    </header>
+
+    <!-- 居中海报展示区 -->
+    <div class="px-6 my-auto flex flex-col items-center justify-between flex-1 py-8 relative z-10">
+      <!-- 顶部留白，把画面上半部分完全留给女朋友的脸 -->
+      <div class="flex-1"></div>
+
+      <!-- 卡片容器 (根据选择的样式动态切换外观) -->
+      <div id="capture-card" class="w-full max-w-[330px] transition-all duration-300 text-center">
+        <!-- 顶部标题胶囊/色条 -->
+        <div id="detail-card-header" class="inline-block glass-pill px-4 py-1.5 rounded-full text-white font-semibold text-sm tracking-wide mb-2">
+          和老婆在一起已经
+        </div>
+
+        <!-- 中间超大数字 -->
+        <div id="detail-card-body" class="py-2 flex flex-col items-center justify-center">
+          <div id="detail-days-num" class="num-tabular text-[104px] font-black text-white leading-none tracking-tighter hero-text-shadow">
+            355
+          </div>
+          <div id="detail-sub-unit" class="mt-2 text-xs text-white/90 font-semibold tracking-wider glass-pill px-3 py-0.5 rounded-full">
+            约 50 周 5 天
+          </div>
+        </div>
+
+        <!-- 底部目标日 -->
+        <div id="detail-card-footer" class="mt-2 text-xs text-white/85 font-medium hero-text-shadow">
+          <span id="detail-target-date">目标日: 2025-12-04 星期四</span>
+        </div>
+      </div>
+
+      <!-- 底部操作按钮组 -->
+      <div class="mt-8 flex flex-wrap items-center justify-center gap-2.5">
+        <button onclick="generateCardImage()" class="bg-white text-slate-900 active:scale-95 px-4 py-2.5 rounded-full text-xs font-bold shadow-xl flex items-center space-x-1.5 transition">
+          <i class="fa-solid fa-download"></i>
+          <span>存为海报图</span>
+        </button>
+        <button onclick="shareText()" class="glass-pill text-white px-4 py-2.5 rounded-full text-xs font-bold flex items-center space-x-1.5">
+          <i class="fa-solid fa-share-nodes"></i>
+          <span>复制文案</span>
+        </button>
+        <button onclick="openBgSettingsModal()" class="glass-pill text-white px-3.5 py-2.5 rounded-full text-xs font-bold flex items-center space-x-1.5">
+          <i class="fa-regular fa-image"></i>
+          <span>调整背景</span>
+        </button>
+        <button onclick="pinCurrentDetail()" class="glass-pill text-white w-9 h-9 rounded-full flex items-center justify-center" title="设为首页置顶">
+          <i class="fa-solid fa-thumbtack text-xs"></i>
+        </button>
+      </div>
+    </div>
+
+    <div class="safe-bottom h-2"></div>
+  </div>
+
+  <!-- ==================== 3. 自定义背景壁纸与构图微调弹窗 ==================== -->
+  <div id="bg-modal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-xs" onclick="closeBgSettingsModal()"></div>
+    <div class="relative w-full max-w-md bg-slate-900/95 backdrop-blur-2xl text-white border border-white/15 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden safe-bottom z-10">
+      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <h3 class="font-bold text-base">壁纸与画面构图微调</h3>
+        <button onclick="closeBgSettingsModal()" class="w-7 h-7 rounded-full bg-white/10 text-white/80 flex items-center justify-center text-xs">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="p-5 space-y-5">
+        <!-- 相册上传大按钮 -->
+        <div onclick="triggerPhotoUpload()" class="border border-dashed border-white/30 bg-white/5 active:bg-white/10 rounded-2xl p-4 flex items-center space-x-4 cursor-pointer transition">
+          <div class="w-12 h-12 rounded-2xl bg-white text-slate-900 flex items-center justify-center text-xl shrink-0 shadow-md">
+            <i class="fa-solid fa-camera-retro"></i>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-white">从手机相册选择照片</p>
+            <p class="text-xs text-white/60 mt-0.5">支持竖屏人像高清适配，自动本地保存</p>
+          </div>
+        </div>
+
+        <!-- 当前自定义图片预览与构图滑块 -->
+        <div id="custom-bg-controls" class="hidden space-y-4 bg-white/5 p-4 rounded-2xl border border-white/10">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+              <img id="bg-preview-thumb" src="" alt="壁纸预览" class="w-11 h-11 rounded-xl object-cover border border-white/30" />
+              <div>
+                <p class="text-xs font-bold text-white">自定义照片已生效</p>
+                <p class="text-[11px] text-white/55">拖动下方滑块可调整人物位置</p>
+              </div>
+            </div>
+            <button onclick="clearCustomBg()" class="px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold">
+              移除
+            </button>
+          </div>
+
+          <!-- 垂直构图位置滑块 (解决人脸被裁切的问题) -->
+          <div class="space-y-1.5 pt-1">
+            <div class="flex justify-between text-xs">
+              <span class="font-semibold text-white/80">画面上下位置微调</span>
+              <span id="pos-y-val-text" class="text-amber-300 font-bold">35%</span>
+            </div>
+            <input id="bg-pos-y-range" type="range" min="0" max="100" value="35" oninput="updateBgPositionY(this.value)" class="w-full accent-white" />
+          </div>
+
+          <!-- 遮罩暗度调节滑块 -->
+          <div class="space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <span class="font-semibold text-white/80">背景暗度遮罩</span>
+              <span id="scrim-val-text" class="text-amber-300 font-bold">20%</span>
+            </div>
+            <input id="bg-scrim-range" type="range" min="0" max="60" value="20" oninput="updateScrimOpacity(this.value)" class="w-full accent-white" />
+          </div>
+        </div>
+
+        <!-- 内置精选主题快捷切换 -->
+        <div>
+          <p class="text-xs font-semibold text-white/50 mb-2.5">或选择内置高级渐变壁纸</p>
+          <div class="grid grid-cols-5 gap-2.5">
+            <button onclick="selectBuiltinTheme(0)" class="flex flex-col items-center space-y-1">
+              <span class="w-11 h-11 rounded-2xl theme-wood border border-white/20"></span>
+              <span class="text-[10px] text-white/75">深海</span>
+            </button>
+            <button onclick="selectBuiltinTheme(1)" class="flex flex-col items-center space-y-1">
+              <span class="w-11 h-11 rounded-2xl theme-aurora border border-white/20"></span>
+              <span class="text-[10px] text-white/75">极光</span>
+            </button>
+            <button onclick="selectBuiltinTheme(2)" class="flex flex-col items-center space-y-1">
+              <span class="w-11 h-11 rounded-2xl theme-sunset border border-white/20"></span>
+              <span class="text-[10px] text-white/75">晚霞</span>
+            </button>
+            <button onclick="selectBuiltinTheme(3)" class="flex flex-col items-center space-y-1">
+              <span class="w-11 h-11 rounded-2xl theme-sakura border border-white/20"></span>
+              <span class="text-[10px] text-white/75">樱粉</span>
+            </button>
+            <button onclick="selectBuiltinTheme(4)" class="flex flex-col items-center space-y-1">
+              <span class="w-11 h-11 rounded-2xl theme-nordic border border-white/20"></span>
+              <span class="text-[10px] text-white/75">暮色</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 4. 左侧分类抽屉 (倒数本) ==================== -->
+  <div id="category-drawer" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/55 backdrop-blur-xs" onclick="toggleDrawer(false)"></div>
+    <div class="relative w-68 max-w-[76vw] h-full bg-slate-900/95 backdrop-blur-2xl text-white border-r border-white/10 shadow-2xl flex flex-col safe-top safe-bottom">
+      <div class="p-5 border-b border-white/10">
+        <div class="flex items-center space-x-3">
+          <div class="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center text-xl">
+            <i class="fa-solid fa-heart text-rose-400"></i>
+          </div>
+          <div>
+            <h2 class="font-bold text-base tracking-tight">Days Matter</h2>
+            <p class="text-[11px] text-white/60">沉浸式锁屏倒数日</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-3.5 flex-1 overflow-y-auto space-y-1.5">
+        <p class="px-3 py-1 text-[11px] font-bold text-white/40 uppercase tracking-wider">我的倒数本</p>
+        <button onclick="selectCategory('全部')" class="cat-item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-semibold bg-white/15 text-white">
+          <span><i class="fa-solid fa-layer-group w-6 text-sky-400"></i>全部事件</span>
+          <span id="count-all" class="text-xs bg-white/15 px-2.5 py-0.5 rounded-full">0</span>
+        </button>
+        <button onclick="selectCategory('纪念日')" class="cat-item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium text-white/80 hover:bg-white/10">
+          <span><i class="fa-solid fa-heart w-6 text-rose-400"></i>恋爱纪念日</span>
+          <span id="count-love" class="text-xs text-white/50">0</span>
+        </button>
+        <button onclick="selectCategory('生活')" class="cat-item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium text-white/80 hover:bg-white/10">
+          <span><i class="fa-solid fa-mug-hot w-6 text-emerald-400"></i>生活日常</span>
+          <span id="count-life" class="text-xs text-white/50">0</span>
+        </button>
+        <button onclick="selectCategory('工作')" class="cat-item w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-medium text-white/80 hover:bg-white/10">
+          <span><i class="fa-solid fa-briefcase w-6 text-amber-400"></i>工作学习</span>
+          <span id="count-work" class="text-xs text-white/50">0</span>
+        </button>
+      </div>
+
+      <div class="p-4 border-t border-white/10 text-[11px] text-white/45 text-center">
+        提示：在 Safari 中“添加到主屏幕”可隐藏浏览器地址栏
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 5. 新增 / 编辑倒数日弹窗 ==================== -->
+  <div id="editor-modal" class="fixed inset-0 z-50 hidden flex items-end sm:items-center justify-center">
+    <div class="absolute inset-0 bg-black/60 backdrop-blur-xs" onclick="closeEditorModal()"></div>
+    <div class="relative w-full max-w-md bg-slate-900/95 backdrop-blur-2xl text-white border border-white/15 rounded-t-3xl sm:rounded-3xl shadow-2xl overflow-hidden safe-bottom z-10">
+      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+        <button onclick="closeEditorModal()" class="text-sm text-white/70 font-medium">取消</button>
+        <h3 id="editor-modal-title" class="font-bold text-base">添加新日子</h3>
+        <button onclick="saveEvent()" class="text-xs font-bold bg-white text-slate-900 px-3.5 py-1.5 rounded-full">保存</button>
+      </div>
+
+      <div class="p-5 space-y-4">
+        <input type="hidden" id="edit-id" />
+
+        <div>
+          <label class="block text-xs font-bold text-white/60 mb-1.5">事件名称</label>
+          <input id="edit-title" type="text" placeholder="例如：和老婆在一起、生日、跨年" class="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-sm text-white placeholder-white/40 font-medium focus:outline-none focus:border-white/40 transition" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-white/60 mb-1.5">目标日期</label>
+          <input id="edit-date" type="date" class="w-full px-4 py-3 bg-white/10 border border-white/10 rounded-2xl text-sm text-white font-medium focus:outline-none focus:border-white/40 transition" />
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-white/60 mb-1.5">倒数本分类</label>
+          <div class="grid grid-cols-3 gap-2.5">
+            <button type="button" onclick="setEditorCategory('纪念日')" class="cat-radio py-2.5 rounded-2xl text-xs font-semibold border border-white/15 text-white/75" data-val="纪念日">纪念日</button>
+            <button type="button" onclick="setEditorCategory('生活')" class="cat-radio py-2.5 rounded-2xl text-xs font-semibold border border-white/15 text-white/75" data-val="生活">生活</button>
+            <button type="button" onclick="setEditorCategory('工作')" class="cat-radio py-2.5 rounded-2xl text-xs font-semibold border border-white/15 text-white/75" data-val="工作">工作</button>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <span class="text-sm font-semibold text-white/90">置顶显示在锁屏主视觉</span>
+          <input id="edit-pinned" type="checkbox" class="w-5 h-5 accent-white rounded" />
+        </div>
+
+        <button id="delete-event-btn" onclick="deleteCurrentEditingEvent()" class="hidden w-full py-3 mt-2 rounded-2xl bg-red-500/20 text-red-300 text-sm font-bold">
+          删除此倒数日
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 6. 存为图片预览弹窗 ==================== -->
+  <div id="image-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
+    <div class="absolute inset-0 bg-black/80 backdrop-blur-xs" onclick="closeImageModal()"></div>
+    <div class="relative bg-slate-900 border border-white/15 rounded-3xl p-4 max-w-xs w-full text-center shadow-2xl z-10 text-white">
+      <h3 class="font-bold text-sm mb-1">专属海报已生成</h3>
+      <p class="text-xs text-amber-300 mb-3 font-semibold">👇 长按下方图片即可“保存到相册”</p>
+      <img id="generated-img" src="" alt="倒数日卡片" class="w-full rounded-2xl shadow-lg border border-white/15 mx-auto" />
+      <button onclick="closeImageModal()" class="mt-4 w-full py-2.5 bg-white/15 text-white rounded-2xl text-sm font-semibold">关闭</button>
+    </div>
+  </div>
+
+  <!-- ==================== 7. iOS 添加到主屏幕指引弹窗 ==================== -->
+  <div id="install-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-xs" onclick="closeInstallModal()"></div>
+    <div class="relative bg-slate-900 border border-white/15 text-white rounded-3xl p-6 max-w-sm w-full shadow-2xl z-10 space-y-3.5">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center">
+          <i class="fa-brands fa-apple text-xl"></i>
+        </div>
+        <h3 class="font-bold text-base">去掉浏览器框，变身全屏 App</h3>
+      </div>
+      <p class="text-xs text-white/75 leading-relaxed">
+        把在线网址添加到 iPhone 主屏幕后，打开时顶部和底部的浏览器地址栏会完全消失，就像原生 App 一样纯净展示壁纸：
+      </p>
+      <ol class="text-xs text-white/90 space-y-2.5 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+        <li><strong>第 1 步：</strong>用 iPhone 自带的 <strong>Safari 浏览器</strong>打开本页面网址。</li>
+        <li><strong>第 2 步：</strong>点击底部中间的 <strong>分享图标 <i class="fa-solid fa-arrow-up-from-bracket text-sky-400"></i></strong>，选择 <strong>“添加到主屏幕”</strong>。</li>
+      </ol>
+      <button onclick="closeInstallModal()" class="w-full py-3 bg-white text-slate-900 rounded-2xl text-sm font-bold">我知道了</button>
+    </div>
+  </div>
+
+  <!-- ==================== 8. 备份弹窗 ==================== -->
+  <div id="backup-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-5">
+    <div class="absolute inset-0 bg-black/70 backdrop-blur-xs" onclick="closeBackupModal()"></div>
+    <div class="relative bg-slate-900 border border-white/15 text-white rounded-3xl p-5 max-w-sm w-full shadow-2xl z-10 space-y-4">
+      <h3 class="font-bold text-base">数据备份与恢复</h3>
+      <p class="text-xs text-white/60">所有倒数日均保存在手机本地。换机前可复制备份码保存。</p>
+      <textarea id="backup-textarea" rows="3" class="w-full p-3 bg-white/10 rounded-2xl text-xs text-white font-mono focus:outline-none" placeholder="点击下方导出生成备份代码，或粘贴代码点击恢复..."></textarea>
+      <div class="grid grid-cols-2 gap-2.5">
+        <button onclick="exportBackup()" class="py-2.5 bg-white text-slate-900 rounded-2xl text-xs font-bold">复制备份码</button>
+        <button onclick="importBackup()" class="py-2.5 bg-emerald-500 text-white rounded-2xl text-xs font-bold">从代码恢复</button>
+      </div>
+      <button onclick="closeBackupModal()" class="w-full py-2.5 bg-white/10 text-white/80 rounded-2xl text-xs font-semibold">关闭</button>
+    </div>
+  </div>
+
+  <!-- 轻提示 Toast -->
+  <div id="toast" class="fixed top-16 left-1/2 -translate-x-1/2 bg-black/80 backdrop-blur-xl border border-white/15 text-white text-xs font-medium px-4 py-2.5 rounded-full shadow-2xl opacity-0 pointer-events-none transition-opacity duration-200 z-50 whitespace-nowrap">
+    提示信息
+  </div>
+
+  <script>
+    // ==================== 初始默认数据 ====================
+    const DEFAULT_EVENTS = [
+      { id: '1', title: '和老婆在一起', date: '2025-12-04', category: '纪念日', pinned: true },
+      { id: '2', title: 'New Year', date: '2027-01-01', category: '生活', pinned: false },
+      { id: '3', title: '星期六', date: getNextSaturday(), category: '生活', pinned: false }
+    ];
+
+    let events = [];
+    let currentCategory = '全部';
+    let currentDetailId = null;
+    let editorCategory = '纪念日';
+    let purePhotoMode = false;
+    let detailCardStyle = 'frameless'; // 'frameless' | 'glass' | 'classic'
+
+    // 主题与自定义背景状态
+    const THEMES = ['theme-wood', 'theme-aurora', 'theme-sunset', 'theme-sakura', 'theme-nordic'];
+    const THEME_NAMES = ['深海静谧', '极光深邃', '晚霞暮色', '樱花粉黛', '北欧紫霞'];
+    let bgSettings = {
+      themeIndex: 0,
+      customDataUrl: null,
+      scrimOpacity: 20,
+      posY: 35
+    };
+
+    function getNextSaturday() {
+      const now = new Date();
+      const day = now.getDay();
+      const diff = (6 - day + 7) % 7 || 7;
+      const sat = new Date(now.getFullYear(), now.getMonth(), now.getDate() + diff);
+      return formatDateInput(sat);
+    }
+
+    function formatDateInput(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
+    }
+
+    // 智能拼接事件标题，彻底避免“和老婆在一起已经 已经”重复
+    function formatEventDisplayTitle(rawTitle, info) {
+      const cleanTitle = rawTitle.trim();
+      if (info.isToday) {
+        return cleanTitle.endsWith('今天') ? cleanTitle : `${cleanTitle} · 就是今天`;
+      }
+      if (cleanTitle.endsWith('已经') || cleanTitle.endsWith('还有')) {
+        return cleanTitle;
+      }
+      return `${cleanTitle} ${info.statusText}`;
+    }
+
+    // ==================== 核心日期计算 ====================
+    function calculateDayInfo(dateStr) {
+      const [y, m, d] = dateStr.split('-').map(Number);
+      const target = new Date(y, m - 1, d);
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      const diffTime = target.getTime() - today.getTime();
+      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+
+      const weekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const weekdayStr = weekdays[target.getDay()];
+
+      return {
+        days: Math.abs(diffDays),
+        isPast: diffDays < 0,
+        isToday: diffDays === 0,
+        statusText: diffDays > 0 ? '还有' : (diffDays < 0 ? '已经' : '就是今天'),
+        formattedDate: `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')} ${weekdayStr}`
+      };
+    }
+
+    // ==================== 初始化与本地存储 ====================
+    function initApp() {
+      generateAppIcon();
+      try {
+        const saved = localStorage.getItem('days_matter_events_v1');
+        events = saved ? JSON.parse(saved) : [...DEFAULT_EVENTS];
+
+        const savedBg = localStorage.getItem('days_matter_bg_v3');
+        if (savedBg) {
+          bgSettings = { ...bgSettings, ...JSON.parse(savedBg) };
+        }
+      } catch (e) {
+        events = [...DEFAULT_EVENTS];
+      }
+      applyBackgroundAppearance();
+      renderAll();
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem('days_matter_events_v1', JSON.stringify(events));
+      } catch (e) {
+        showToast('本地存储空间不足');
+      }
+    }
+
+    function saveBgSettings() {
+      try {
+        localStorage.setItem('days_matter_bg_v3', JSON.stringify(bgSettings));
+      } catch (e) {
+        showToast('图片过大无法保存，请选择较小图片');
+      }
+    }
+
+    // ==================== 纯享壁纸模式切换 ====================
+    function togglePurePhotoMode() {
+      purePhotoMode = !purePhotoMode;
+      const hero = document.getElementById('home-hero-section');
+      const list = document.getElementById('events-list');
+      const nav = document.getElementById('home-bottom-nav');
+      const eyeBtn = document.getElementById('pure-mode-btn');
+
+      if (purePhotoMode) {
+        hero.classList.add('opacity-0', 'pointer-events-none');
+        list.classList.add('opacity-0', 'pointer-events-none');
+        nav.classList.add('opacity-0', 'pointer-events-none');
+        eyeBtn.innerHTML = '<i class="fa-regular fa-eye-slash text-amber-300"></i>';
+        showToast('已进入纯享壁纸模式，再次点击眼睛恢复');
+      } else {
+        hero.classList.remove('opacity-0', 'pointer-events-none');
+        list.classList.remove('opacity-0', 'pointer-events-none');
+        nav.classList.remove('opacity-0', 'pointer-events-none');
+        eyeBtn.innerHTML = '<i class="fa-regular fa-eye"></i>';
+      }
+    }
+
+    // ==================== 自定义图片上传与智能压缩 ====================
+    function triggerPhotoUpload() {
+      document.getElementById('bg-file-input').click();
+    }
+
+    function handleBgFileSelect(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      showToast('正在优化壁纸画质...');
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = new Image();
+        img.onload = function() {
+          const maxDim = 1440;
+          let w = img.width;
+          let h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          bgSettings.customDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+          saveBgSettings();
+          applyBackgroundAppearance();
+          updateBgModalUI();
+          showToast('照片壁纸已设置！可拖动滑块微调位置');
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+      event.target.value = '';
+    }
+
+    function applyBackgroundAppearance() {
+      const bgLayer = document.getElementById('global-bg-layer');
+      const scrimLayer = document.getElementById('global-scrim-layer');
+      const opacity = (bgSettings.scrimOpacity ?? 20) / 100;
+      const posY = bgSettings.posY ?? 35;
+
+      bgLayer.classList.remove(...THEMES);
+
+      if (bgSettings.customDataUrl) {
+        bgLayer.style.backgroundImage = `url(${bgSettings.customDataUrl})`;
+        bgLayer.style.backgroundPosition = `50% ${posY}%`;
+        scrimLayer.style.background = `linear-gradient(180deg, rgba(0,0,0,${opacity + 0.12}) 0%, rgba(0,0,0,0.02) 45%, rgba(0,0,0,${opacity + 0.28}) 100%)`;
+      } else {
+        bgLayer.style.backgroundImage = '';
+        bgLayer.classList.add(THEMES[bgSettings.themeIndex]);
+        scrimLayer.style.background = `linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.05) 50%, rgba(0,0,0,0.35) 100%)`;
+      }
+    }
+
+    function openBgSettingsModal() {
+      updateBgModalUI();
+      document.getElementById('bg-modal').classList.remove('hidden');
+    }
+
+    function closeBgSettingsModal() {
+      document.getElementById('bg-modal').classList.add('hidden');
+    }
+
+    function updateBgModalUI() {
+      const controls = document.getElementById('custom-bg-controls');
+      if (bgSettings.customDataUrl) {
+        controls.classList.remove('hidden');
+        document.getElementById('bg-preview-thumb').src = bgSettings.customDataUrl;
+        document.getElementById('bg-scrim-range').value = bgSettings.scrimOpacity ?? 20;
+        document.getElementById('scrim-val-text').textContent = `${bgSettings.scrimOpacity ?? 20}%`;
+        document.getElementById('bg-pos-y-range').value = bgSettings.posY ?? 35;
+        document.getElementById('pos-y-val-text').textContent = `${bgSettings.posY ?? 35}%`;
+      } else {
+        controls.classList.add('hidden');
+      }
+    }
+
+    function updateBgPositionY(val) {
+      bgSettings.posY = Number(val);
+      document.getElementById('pos-y-val-text').textContent = `${val}%`;
+      saveBgSettings();
+      applyBackgroundAppearance();
+    }
+
+    function updateScrimOpacity(val) {
+      bgSettings.scrimOpacity = Number(val);
+      document.getElementById('scrim-val-text').textContent = `${val}%`;
+      saveBgSettings();
+      applyBackgroundAppearance();
+    }
+
+    function clearCustomBg() {
+      bgSettings.customDataUrl = null;
+      saveBgSettings();
+      applyBackgroundAppearance();
+      updateBgModalUI();
+      showToast('已恢复默认渐变壁纸');
+    }
+
+    function selectBuiltinTheme(idx) {
+      bgSettings.customDataUrl = null;
+      bgSettings.themeIndex = idx;
+      saveBgSettings();
+      applyBackgroundAppearance();
+      updateBgModalUI();
+      showToast(`已切换：${THEME_NAMES[idx]}`);
+    }
+
+    // ==================== 渲染首页列表与置顶卡 ====================
+    function renderAll() {
+      updateCategoryCounts();
+
+      const filtered = currentCategory === '全部'
+        ? events
+        : events.filter(item => item.category === currentCategory);
+
+      let pinnedItem = filtered.find(item => item.pinned) || filtered[0];
+      const pinnedContainer = document.getElementById('pinned-container');
+      const listContainer = document.getElementById('events-list');
+      const emptyState = document.getElementById('empty-state');
+
+      if (!pinnedItem) {
+        pinnedContainer.parentElement.classList.add('hidden');
+        listContainer.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      pinnedContainer.parentElement.classList.remove('hidden');
+      emptyState.classList.add('hidden');
+
+      // 渲染锁屏置顶主视觉
+      const pInfo = calculateDayInfo(pinnedItem.date);
+      document.getElementById('pinned-title').textContent = formatEventDisplayTitle(pinnedItem.title, pInfo);
+      document.getElementById('pinned-date').innerHTML = `<i class="fa-regular fa-calendar text-[11px]"></i><span>${pInfo.formattedDate}</span>`;
+      document.getElementById('pinned-days').textContent = pInfo.days;
+      document.getElementById('pinned-dot').className = `inline-block w-1.5 h-1.5 rounded-full ${pInfo.isPast ? 'bg-amber-400' : 'bg-sky-400'}`;
+      document.getElementById('pinned-badge-text').textContent = pInfo.isPast ? '累计已过' : '置顶倒数';
+      pinnedContainer.dataset.id = pinnedItem.id;
+
+      // 渲染通透磨砂列表项
+      listContainer.innerHTML = filtered.map(item => {
+        const info = calculateDayInfo(item.date);
+        const badgeColor = info.isPast
+          ? 'bg-amber-500/85 text-white'
+          : 'bg-sky-500/85 text-white';
+        const label = formatEventDisplayTitle(item.title, info);
+
+        return `
+          <div onclick="openDetail('${item.id}')" class="glass-list-item rounded-2xl px-4 py-3 flex items-center justify-between cursor-pointer">
+            <div class="min-w-0 flex-1 pr-3">
+              <div class="font-semibold text-white text-[15px] truncate">${escapeHtml(label)}</div>
+              <div class="text-[11px] text-white/65 mt-0.5">${info.formattedDate}</div>
+            </div>
+            <div class="flex items-center space-x-1.5 shrink-0">
+              <span class="num-tabular font-extrabold text-xl text-white tracking-tight">${info.days}</span>
+              <span class="${badgeColor} text-[10px] font-bold px-2 py-0.5 rounded-md">天</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updateCategoryCounts() {
+      document.getElementById('count-all').textContent = events.length;
+      document.getElementById('count-life').textContent = events.filter(e => e.category === '生活').length;
+      document.getElementById('count-work').textContent = events.filter(e => e.category === '工作').length;
+      document.getElementById('count-love').textContent = events.filter(e => e.category === '纪念日').length;
+    }
+
+    // ==================== 详情视图与3种卡片风格切换 ====================
+    function openPinnedDetail() {
+      const id = document.getElementById('pinned-container').dataset.id;
+      if (id) openDetail(id);
+    }
+
+    function openDetail(id) {
+      const item = events.find(e => e.id === id);
+      if (!item) return;
+      currentDetailId = id;
+
+      const info = calculateDayInfo(item.date);
+      document.getElementById('detail-card-header').textContent = formatEventDisplayTitle(item.title, info);
+      document.getElementById('detail-days-num').textContent = info.days;
+      document.getElementById('detail-target-date').textContent = `目标日: ${info.formattedDate}`;
+
+      const subUnitEl = document.getElementById('detail-sub-unit');
+      if (info.days >= 7) {
+        const weeks = Math.floor(info.days / 7);
+        const remDays = info.days % 7;
+        subUnitEl.textContent = remDays > 0 ? `约 ${weeks} 周 ${remDays} 天` : `整整 ${weeks} 周`;
+        subUnitEl.classList.remove('hidden');
+      } else {
+        subUnitEl.classList.add('hidden');
+      }
+
+      setDetailCardStyle(detailCardStyle);
+
+      document.getElementById('home-view').classList.add('hidden-view');
+      document.getElementById('detail-view').classList.remove('hidden-view');
+    }
+
+    function setDetailCardStyle(style) {
+      detailCardStyle = style;
+      const card = document.getElementById('capture-card');
+      const header = document.getElementById('detail-card-header');
+      const body = document.getElementById('detail-card-body');
+      const daysNum = document.getElementById('detail-days-num');
+      const subUnit = document.getElementById('detail-sub-unit');
+      const footer = document.getElementById('detail-card-footer');
+
+      // 更新顶部切换按钮高亮
+      ['frameless', 'glass', 'classic'].forEach(s => {
+        const btn = document.getElementById(`style-btn-${s}`);
+        if (s === style) {
+          btn.className = 'px-2.5 py-1 rounded-full bg-white text-slate-900 transition';
+        } else {
+          btn.className = 'px-2.5 py-1 rounded-full text-white/85 transition';
+        }
+      });
+
+      const item = events.find(e => e.id === currentDetailId);
+      const info = item ? calculateDayInfo(item.date) : { isPast: false };
+
+      if (style === 'frameless') {
+        card.className = 'w-full max-w-[330px] transition-all duration-300 text-center';
+        header.className = 'inline-block glass-pill px-4 py-1.5 rounded-full text-white font-semibold text-sm tracking-wide mb-2';
+        body.className = 'py-2 flex flex-col items-center justify-center';
+        daysNum.className = 'num-tabular text-[104px] font-black text-white leading-none tracking-tighter hero-text-shadow';
+        subUnit.className = 'mt-2 text-xs text-white/90 font-semibold tracking-wider glass-pill px-3 py-0.5 rounded-full';
+        footer.className = 'mt-2 text-xs text-white/85 font-medium hero-text-shadow';
+      } else if (style === 'glass') {
+        card.className = 'w-full max-w-[320px] glass-detail-card rounded-[28px] overflow-hidden transition-all duration-300 text-center';
+        header.className = 'bg-white/15 border-b border-white/20 text-white py-3.5 px-5 font-bold text-base tracking-wide';
+        body.className = 'py-10 px-4 flex flex-col items-center justify-center';
+        daysNum.className = 'num-tabular text-[92px] font-black text-white leading-none tracking-tighter hero-text-shadow';
+        subUnit.className = 'mt-3 text-xs text-white/90 font-semibold bg-white/15 px-3 py-1 rounded-full';
+        footer.className = 'bg-black/15 border-t border-white/15 py-3 px-4 text-xs text-white/85 font-medium';
+      } else {
+        card.className = 'w-full max-w-[320px] bg-white rounded-[26px] shadow-2xl overflow-hidden transition-all duration-300 text-center';
+        header.className = `${info.isPast ? 'bg-amber-500' : 'bg-sky-600'} text-white py-3.5 px-5 font-bold text-base tracking-wide`;
+        body.className = 'py-10 px-4 flex flex-col items-center justify-center bg-white';
+        daysNum.className = 'num-tabular text-[92px] font-black text-slate-900 leading-none tracking-tighter';
+        subUnit.className = 'mt-3 text-xs text-slate-500 font-semibold bg-slate-100 px-3 py-1 rounded-full';
+        footer.className = 'bg-slate-50 border-t border-slate-100 py-3 px-4 text-xs text-slate-500 font-medium';
+      }
+    }
+
+    function closeDetail() {
+      document.getElementById('detail-view').classList.add('hidden-view');
+      document.getElementById('home-view').classList.remove('hidden-view');
+      currentDetailId = null;
+    }
+
+    function pinCurrentDetail() {
+      if (!currentDetailId) return;
+      events.forEach(e => e.pinned = (e.id === currentDetailId));
+      saveToStorage();
+      renderAll();
+      showToast('已设为首页锁屏置顶');
+    }
+
+    function editCurrentDetail() {
+      if (!currentDetailId) return;
+      openEditorModal(currentDetailId);
+    }
+
+    // ==================== 使用 Canvas 合成分享海报 (完美保留照片主体) ====================
+    function generateCardImage() {
+      const item = events.find(e => e.id === currentDetailId);
+      if (!item) return;
+      const info = calculateDayInfo(item.date);
+      const headerTitle = formatEventDisplayTitle(item.title, info);
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 750;
+      canvas.height = 1120;
+      const ctx = canvas.getContext('2d');
+
+      const drawOverlayContent = () => {
+        if (detailCardStyle === 'frameless') {
+          // 海报模式：把文字放在下方 1/3 处，上方 2/3 完整保留照片人像！
+          const grad = ctx.createLinearGradient(0, 520, 0, 1120);
+          grad.addColorStop(0, 'rgba(0,0,0,0)');
+          grad.addColorStop(1, 'rgba(0,0,0,0.72)');
+          ctx.fillStyle = grad;
+          ctx.fillRect(0, 520, 750, 600);
+
+          ctx.textAlign = 'center';
+          ctx.fillStyle = 'rgba(255,255,255,0.92)';
+          ctx.font = '600 32px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillText(headerTitle, 375, 760);
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = '900 175px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillText(String(info.days), 375, 920);
+
+          ctx.fillStyle = 'rgba(255,255,255,0.8)';
+          ctx.font = '500 26px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillText(`目标日: ${info.formattedDate} · Days Matter`, 375, 1025);
+        } else {
+          // 居中卡片模式
+          ctx.save();
+          ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+          ctx.shadowBlur = 40;
+          ctx.shadowOffsetY = 18;
+          const cardX = 85, cardY = 230, cardW = 580, cardH = 620, r = 36;
+          ctx.beginPath();
+          ctx.roundRect(cardX, cardY, cardW, cardH, r);
+          ctx.fillStyle = detailCardStyle === 'glass' ? 'rgba(255, 255, 255, 0.22)' : '#FFFFFF';
+          ctx.fill();
+          ctx.restore();
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(cardX, cardY, cardW, cardH, r);
+          ctx.clip();
+
+          if (detailCardStyle !== 'glass') {
+            ctx.fillStyle = info.isPast ? '#F59E0B' : '#0284C7';
+            ctx.fillRect(cardX, cardY, cardW, 110);
+          }
+
+          ctx.fillStyle = '#FFFFFF';
+          ctx.font = 'bold 34px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(headerTitle, 375, cardY + 68);
+
+          ctx.fillStyle = detailCardStyle === 'glass' ? '#FFFFFF' : '#0F172A';
+          ctx.font = '900 200px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillText(String(info.days), 375, cardY + 365);
+
+          ctx.fillStyle = detailCardStyle === 'glass' ? 'rgba(255,255,255,0.85)' : '#64748B';
+          ctx.font = '500 26px -apple-system, BlinkMacSystemFont, sans-serif';
+          ctx.fillText(`目标日: ${info.formattedDate}`, 375, cardY + 560);
+          ctx.restore();
+        }
+
+        document.getElementById('generated-img').src = canvas.toDataURL('image/png');
+        document.getElementById('image-modal').classList.remove('hidden');
+      };
+
+      if (bgSettings.customDataUrl) {
+        const bgImg = new Image();
+        bgImg.onload = () => {
+          const scale = Math.max(canvas.width / bgImg.width, canvas.height / bgImg.height);
+          const drawW = bgImg.width * scale;
+          const drawH = bgImg.height * scale;
+          const offsetX = (canvas.width - drawW) / 2;
+          const offsetY = (canvas.height - drawH) * ((bgSettings.posY ?? 35) / 100);
+          ctx.drawImage(bgImg, offsetX, offsetY, drawW, drawH);
+
+          ctx.fillStyle = `rgba(0, 0, 0, ${(bgSettings.scrimOpacity ?? 20) / 100})`;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+          drawOverlayContent();
+        };
+        bgImg.src = bgSettings.customDataUrl;
+      } else {
+        const grad = ctx.createLinearGradient(0, 0, 750, 1120);
+        const palettes = [
+          ['#2c3e50', '#4ca1af'],
+          ['#0F2027', '#2C5364'],
+          ['#c94b4b', '#4b134f'],
+          ['#ee9ca7', '#ffdde1'],
+          ['#3a6186', '#89253e']
+        ];
+        const [c1, c2] = palettes[bgSettings.themeIndex] || palettes[0];
+        grad.addColorStop(0, c1);
+        grad.addColorStop(1, c2);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 750, 1120);
+        drawOverlayContent();
+      }
+    }
+
+    function closeImageModal() {
+      document.getElementById('image-modal').classList.add('hidden');
+    }
+
+    function shareText() {
+      const item = events.find(e => e.id === currentDetailId);
+      if (!item) return;
+      const info = calculateDayInfo(item.date);
+      const label = formatEventDisplayTitle(item.title, info);
+      const text = `【倒数日】${label} ${info.days} 天（目标日：${info.formattedDate}）`;
+
+      const tempInput = document.createElement('textarea');
+      tempInput.value = text;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempInput);
+      showToast('已复制倒数日文案');
+    }
+
+    // ==================== 新增/编辑弹窗逻辑 ====================
+    function openEditorModal(editId = null) {
+      const modal = document.getElementById('editor-modal');
+      const deleteBtn = document.getElementById('delete-event-btn');
+
+      if (editId) {
+        const item = events.find(e => e.id === editId);
+        if (!item) return;
+        document.getElementById('editor-modal-title').textContent = '编辑倒数日';
+        document.getElementById('edit-id').value = item.id;
+        document.getElementById('edit-title').value = item.title;
+        document.getElementById('edit-date').value = item.date;
+        document.getElementById('edit-pinned').checked = !!item.pinned;
+        setEditorCategory(item.category || '纪念日');
+        deleteBtn.classList.remove('hidden');
+      } else {
+        document.getElementById('editor-modal-title').textContent = '添加新日子';
+        document.getElementById('edit-id').value = '';
+        document.getElementById('edit-title').value = '';
+        document.getElementById('edit-date').value = formatDateInput(new Date(Date.now() + 86400000 * 7));
+        document.getElementById('edit-pinned').checked = events.length === 0;
+        setEditorCategory(currentCategory === '全部' ? '纪念日' : currentCategory);
+        deleteBtn.classList.add('hidden');
+      }
+
+      modal.classList.remove('hidden');
+    }
+
+    function closeEditorModal() {
+      document.getElementById('editor-modal').classList.add('hidden');
+    }
+
+    function setEditorCategory(cat) {
+      editorCategory = cat;
+      document.querySelectorAll('.cat-radio').forEach(btn => {
+        if (btn.dataset.val === cat) {
+          btn.className = 'cat-radio py-2.5 rounded-2xl text-xs font-semibold border bg-white text-slate-900 border-white';
+        } else {
+          btn.className = 'cat-radio py-2.5 rounded-2xl text-xs font-semibold border border-white/15 text-white/75';
+        }
+      });
+    }
+
+    function saveEvent() {
+      const id = document.getElementById('edit-id').value;
+      const title = document.getElementById('edit-title').value.trim();
+      const date = document.getElementById('edit-date').value;
+      const pinned = document.getElementById('edit-pinned').checked;
+
+      if (!title) {
+        showToast('请输入事件名称');
+        return;
+      }
+      if (!date) {
+        showToast('请选择目标日期');
+        return;
+      }
+
+      if (pinned) {
+        events.forEach(e => e.pinned = false);
+      }
+
+      if (id) {
+        const idx = events.findIndex(e => e.id === id);
+        if (idx !== -1) {
+          events[idx] = { ...events[idx], title, date, category: editorCategory, pinned };
+        }
+        if (currentDetailId === id) {
+          openDetail(id);
+        }
+      } else {
+        events.unshift({
+          id: String(Date.now()),
+          title,
+          date,
+          category: editorCategory,
+          pinned
+        });
+      }
+
+      saveToStorage();
+      renderAll();
+      closeEditorModal();
+      showToast('保存成功');
+    }
+
+    function deleteCurrentEditingEvent() {
+      const id = document.getElementById('edit-id').value;
+      if (!id) return;
+      events = events.filter(e => e.id !== id);
+      saveToStorage();
+      closeEditorModal();
+      if (currentDetailId === id) {
+        closeDetail();
+      }
+      renderAll();
+      showToast('已删除');
+    }
+
+    // ==================== 抽屉与备份 ====================
+    function toggleDrawer(show) {
+      const drawer = document.getElementById('category-drawer');
+      if (show) drawer.classList.remove('hidden');
+      else drawer.classList.add('hidden');
+    }
+
+    function selectCategory(cat) {
+      currentCategory = cat;
+      document.getElementById('current-category-badge').textContent = cat === '全部' ? '全部事件' : cat;
+      toggleDrawer(false);
+      renderAll();
+    }
+
+    function switchTab(tab) {
+      if (tab === 'all') selectCategory('全部');
+    }
+
+    function showInstallGuide() {
+      document.getElementById('install-modal').classList.remove('hidden');
+    }
+    function closeInstallModal() {
+      document.getElementById('install-modal').classList.add('hidden');
+    }
+
+    function openBackupModal() {
+      document.getElementById('backup-textarea').value = JSON.stringify(events);
+      document.getElementById('backup-modal').classList.remove('hidden');
+    }
+    function closeBackupModal() {
+      document.getElementById('backup-modal').classList.add('hidden');
+    }
+
+    function exportBackup() {
+      const textarea = document.getElementById('backup-textarea');
+      textarea.value = JSON.stringify(events);
+      textarea.select();
+      document.execCommand('copy');
+      showToast('备份代码已复制到剪贴板');
+    }
+
+    function importBackup() {
+      try {
+        const raw = document.getElementById('backup-textarea').value.trim();
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          events = parsed;
+          saveToStorage();
+          renderAll();
+          closeBackupModal();
+          showToast('数据恢复成功！');
+        } else {
+          showToast('备份代码格式不正确');
+        }
+      } catch (e) {
+        showToast('无法解析备份代码');
+      }
+    }
+
+    function generateAppIcon() {
+      try {
+        const c = document.createElement('canvas');
+        c.width = 180;
+        c.height = 180;
+        const ctx = c.getContext('2d');
+        const grad = ctx.createLinearGradient(0, 0, 180, 180);
+        grad.addColorStop(0, '#1e293b');
+        grad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, 180, 180);
+
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = '900 68px -apple-system, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('355', 90, 82);
+
+        ctx.fillStyle = '#fb7185';
+        ctx.font = 'bold 22px -apple-system, sans-serif';
+        ctx.fillText('DAYS', 90, 134);
+        document.getElementById('apple-touch-icon').href = c.toDataURL('image/png');
+      } catch (e) {}
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      setTimeout(() => toast.classList.add('opacity-0'), 2200);
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/[&<>"']/g, m => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[m]));
+    }
+
+    window.onload = initApp;
+  </script>
+</body>
+</html>
