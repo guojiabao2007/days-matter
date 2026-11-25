@@ -1458,7 +1458,7 @@
         blurPx: Number(slideState.blurPx) || 0,
         scrimOpacity: slideState.scrimOpacity !== undefined ? Number(slideState.scrimOpacity) : 22,
         posY: slideState.posY !== undefined ? Number(slideState.posY) : 22,
-        fitMode: slideState.fitMode || 'cover',
+        fitMode: slideState.fitMode || 'contain',
         isLightBg: Boolean(slideState.isLightBg)
       };
       const cleanPrefs = {
